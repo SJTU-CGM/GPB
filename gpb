@@ -1,0 +1,41 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+use GPBgraph;
+use GPBvariant;
+use GPButils;
+use GPBanno;
+use GPBgfa;
+use GPBreport;
+
+my $usage = "\nUsage: gpb <command> ...\n
+Available commands:
+	viewGraph
+	viewVariant
+
+\n";
+
+die $usage if @ARGV<1;
+
+
+my %commands = (
+	"viewGraph"	=> 0,
+	"viewVariant"	=> 0
+);
+
+my $com = shift @ARGV;
+if(defined $commands{$com}){
+        $commands{$com}=1;
+}else{
+        print STDERR "Invalid command: $com\n";
+        print $usage;
+}
+
+if($commands{"viewGraph"}){
+	GPBgraph::viewGraph(@ARGV);
+}elsif($commands{"viewVariant"}){
+        GPBvariant::viewVariant(@ARGV);
+}
+
+
+
