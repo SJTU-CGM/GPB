@@ -1,0 +1,195 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+use Getopt::Long;
+use FindBin qw($Bin);
+use GPBgraph;
+use GPBarg;
+use GPBanno;
+use GPBgfa;
+use GPBreport;
+use GPBpheno;
+use GPBbed;
+
+my $usage = "\nUsage:
+For variant data: gpb --vcf <in.vcf> --reffa <ref.fa> --gff <ref_gene.gff>  (--geneid ID | --genelist list.txt | --region chr:start-end | --regionlist list.txt) [OPTIONS]
+For pangenome graph: gpb --graph <graph.og> --refname <ref_path> --gff <ref_gene.gff>  (--geneid ID | --genelist list.txt | --region chr:start-end | --regionlist list.txt) [OPTIONS]
+
+REQUIRED ARGUMENTS
+  1. Input mode (choose one group):
+    --vcf		<file>		VCF file with variants (.vcf). (requires --reffa)
+    --reffa		<file>		Reference genome in FASTA format (.fa). (requires --vcf)
+
+    --graph		<file>		Variation graph in ODGI format (.og). (requires --refname)
+    --refname		<string>	Name of the reference path in the graph. (requires --graph)
+
+  2. Reference gene annotation:
+    --gff		<file>		Gene annotation file in GFF format for the reference genome.	
+
+  3. Analysis range (choose one)
+    --geneid		<string>	Single gene ID to analyze.
+    --genelist		<file>		File containing list of gene IDs (one per line).
+    --region		<string>	Single genomic region in 'chr:start-end' format (e.g. chr1:1000-2000).
+    --regionlist	<file>		File containing multiple genomic regions (one per line).
+
+OPTIONAL ARGUMENTS
+    --bed 		<file>		Additional reference-genome annotations besides genes in BED format
+    					(e.g. repeats, domains). 
+    --pheno		<file>		Tab-delimited phenotype matrix: first column contains path identifiers 
+    					(header: 'Path'), remaining columns represent different phenotype with 
+					corresponding names as headers.    
+					Missing values in the file are indicated by -, NA, NaN, null, None,
+				       	NULL, undefined, unknown or Unknown.					
+
+    -o, --out		<string>	Output file name.
+
+    -e, --extend	<n>		Extend analysis region by N bp upstream and downstream of genes.
+    					Only work with --geneid or --genelist.
+    					(Default:10)
+
+    -d,			<n>		Parameter for 'odgi extract'.
+    --max-distance-subpaths		Maximum distance between subpaths allowed for merging them. It reduces
+    					the fragmentation of unspecified paths in the input path ranges.
+					(Default:10000)
+
+    -m,			<n>		Parameter for 'odgi extract'.
+    --max-merging-iterations		Maximum number of iterations in attempting to merge close subpaths. It
+    					stops early if during an iteration no subpaths were merged.
+					(Default:3)
+
+    -t, --threads	<n>		Thread number.
+
+    -h, --help				Print usage page.
+
+
+\n";
+
+die $usage if @ARGV<1;
+
+my ($vcf, $reffa, $graph, $refname, $gff);
+my ($geneid, $genelist, $region, $regionlist);
+my ($bed, $pheno, $out, $help);
+my $extend;
+my $threads = 1;
+my $maxd = 10000;
+my $maxe = 3;
+
+GetOptions(
+   
+   'vcf=s'		=> \$vcf,
+   'reffa=s'		=> \$reffa,
+   'graph=s'		=> \$graph,
+   'refname=s'		=> \$refname,
+
+   'gff=s'		=> \$gff,
+
+   'geneid=s'		=> \$geneid,
+   'genelist=s'		=> \$genelist,
+   'region=s'		=> \$region,
+   'regionlist=s'	=> \$regionlist,
+
+   'bed=s'		=> \$bed,
+   'pheno=s'		=> \$pheno,
+
+   'out|o=s'		=> \$out,
+
+   'extend|e=i'		=> \$extend,
+   'max-distance-subpaths|d=i'	=> \$maxd,
+   'max-merging-iterations|m=i'	=> \$maxe,
+   'threads|t=i'	=> \$threads,
+   'help|h!'		=> \$help
+
+);
+
+die $usage if $help;
+
+my $has_vcf_mode = ($vcf || $reffa);
+my $has_graph_mode = ($graph || $refname);
+
+GPBarg::check_input($vcf, $reffa, $graph, $refname, $gff, $geneid, $genelist, $region, $regionlist, $extend, $bed, $pheno, $maxe, $maxd, $threads);
+
+if($has_vcf_mode){
+	die "Please install 'vg' first\n" if(system("command -v vg > /dev/null 2>&1") != 0);
+	die "Please install 'bcftools' first\n" if(system("command -v bcftools > /dev/null 2>&1") != 0);
+	die "Please install 'samtools' first\n" if(system("command -v samtools > /dev/null 2>&1") != 0);
+}
+die "Please install 'odgi' first\n" if(system("command -v odgi > /dev/null 2>&1") != 0);
+
+if (defined $geneid || defined $genelist) {
+	$extend = 10 unless defined $extend;
+}
+
+my $dir_name = GPBarg::mk_outdir($out);
+
+printLog("Extracting gene annotation information...");
+mkdir "${dir_name}/gff" or die "Cannot create ${dir_name}/gff: $!\n";
+my $interval_arr = GPBanno::get_interval($geneid, $genelist, $region, $regionlist, $extend, $gff, $dir_name);
+
+if ($has_vcf_mode) {
+	printLog("Constructing pangenome graph with VG...");
+	GPBgraph::build_graph($vcf, $reffa, $interval_arr, $dir_name, $threads);
+	$graph = "${dir_name}/pan.og";
+}
+
+mkdir "${dir_name}/visualization" or die "Cannot create ${dir_name}/visualization: $!\n";
+mkdir "${dir_name}/gfa" or die "Cannot create ${dir_name}/gfa: $!\n";
+
+foreach my $interval (@$interval_arr) {
+	my ($name, $chr, $start, $end) = @$interval;
+	printLog("Processing the '$name' region...");
+	my $node_add_sample;
+	my $edge_out;
+	my $ref_info;
+	if ($has_vcf_mode){
+		printLog("- Extracting subgraph with ODGI...");
+		GPBgraph::extract_subgraph($graph, $chr, "$chr:$start-$end", $dir_name, $interval->[0], $maxd, $maxe, $threads);
+		printLog("- Performing hierarchical layout of the sequence graph and computing coordinates...");
+		($node_add_sample, $edge_out, $ref_info) = GPBgfa::parse_variant_gfa("$dir_name/gfa/$name.gfa", "$dir_name/variant_samples.txt", "$dir_name/pan.vcf");
+	} elsif ($has_graph_mode) {
+		printLog("- Extracting subgraph with ODGI...");
+		GPBgraph::extract_subgraph($graph, $refname.".".$chr, "$refname.$chr:$start-$end", $dir_name, $name, $maxd, $maxe, $threads);
+		printLog("- Performing hierarchical layout of the sequence graph and computing coordinates...");
+		($node_add_sample, $edge_out, $ref_info) = GPBgfa::parse_graph_gfa("$dir_name/gfa/$name.gfa", $refname);
+	}
+	if (grep { @$_[2] <= 0 } @$edge_out) {
+    		warn "Warning: Complex mutation from overlapping variants in '$name' region exceeds current handling capability.\n";
+		next;
+	}
+
+	printLog("- Adding gene annotation track from GFF file...");
+        my $all_gene_pos = GPBanno::get_gene_pos("$dir_name/gff/$name.gff");
+        my $bed_data;
+        if (defined $bed){
+                printLog("- Adding additional annotation track from BED file...");
+                $bed_data = GPBbed::load_bed($bed, $interval);
+        } else {
+                $bed_data = '';
+        }
+
+	my $final_nodes;
+	my $pheno_meta;
+	if(defined $pheno){
+		printLog("- Adding phenotype information tracks...");
+		($final_nodes, $pheno_meta) = GPBpheno::add_pheno($node_add_sample, $pheno);
+	}else{
+		$final_nodes = $node_add_sample;
+		$pheno_meta = '';
+	}
+
+	printLog("- Generating final visualization...");
+	GPBreport::export_figure("${dir_name}/visualization", $interval->[0], $final_nodes, $edge_out, $ref_info, $all_gene_pos, $bed_data, $pheno_meta);
+	
+}
+
+unlink "$dir_name/variant_samples.txt" if -e "$dir_name/variant_samples.txt";
+system "cp -r ${Bin}/src/js ${dir_name}/visualization";
+system "cp -r ${Bin}/src/css ${dir_name}/visualization";
+
+sub printLog{
+        my ($info) = @_;
+	my $ts = qx(date '+%F %T'); chomp $ts;
+    	print STDOUT "[ -- $ts -- ] $info\n";
+}
+
+
+
