@@ -1,4 +1,22 @@
+# GPB: Graph-based Pangenome Browser
 
+*A novel flow-based visualization tool for pangenome graphs*
+
+GPB is a visualization tool that employs a novel flow-based layout to clearly reveal graph topology and population frequency. It integrates the sequence graph with reference genome annotations for direct evaluation of variant impact, and can incorporate phenotypic data to explore genotype-to-phenotype associations. All features are accessible through an interactive web interface.
+
+**Key Features:**
+
+* **1. Flow-Based Layout Algorithm**  
+  Visualizes graph structure and population frequency simultaneously.
+
+* **2. Integrated Genome Annotation**  
+  Integrates the sequence graph with reference annotations to assess variant effects on genomic features.
+
+* **3. Phenotypic Data Visualization**  
+  Enables overlay of phenotypic information for validating variant-to-phenotype links.
+
+* **4. Interactive Web Interface**  
+  Provides zooming, panning, and data inspection capabilities for interactive exploration.
 
 ## Requirements
 ### Basic (Both graph mode and VCF mode):
