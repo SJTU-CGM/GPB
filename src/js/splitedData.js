@@ -1,4 +1,4 @@
-// JavaScript Document
+
 
 function statNodeSampleN(edges) {
   const nodeSampleN1 = new Map();
@@ -28,22 +28,19 @@ function generateSequence(start, end) {
 }
 
 
-function splitXAixs(refMergedRange, start) {
+function splitXAxis(refMergedRange, start) {
   const newXSta = [];
   for (let i = 0; i < refMergedRange.length; i++) {
     newXSta.push(refMergedRange[i][1] - refMergedRange[i][0]);
     if (i + 1 < refMergedRange.length) {
       newXSta.push(refMergedRange[i + 1][0] - refMergedRange[i][1]);
     }
-  }
-  //console.dir(newXSta);		
-
+  }	
   const newXLabel = [];
   let tmpX = 1;
   newXSta.forEach((item, idx) => {
     if (idx % 2 == 0) {
       const zArr = generateSequence(tmpX, tmpX + item - 1);
-      //newXLabel.push(...generateSequence(tmpX, tmpX + item));
       for (let i = 0; i < zArr.length; i++) {
         newXLabel.push(zArr[i]);
       }
@@ -54,67 +51,66 @@ function splitXAixs(refMergedRange, start) {
       }
     }
   });
-  //console.dir(newXLabel);
-  //console.dir(start);
   let newXLabel2 = newXLabel.map(item => {
     if (typeof item === 'number') {
       item += Number(start - 1);
-      return item.toLocaleString('en-US'); // 格式化数字
+      return item.toLocaleString('en-US'); 
     }
-    return item; // 保留字符不变
+    return item; 
   });
-
-  return (newXLabel2);
+  return newXLabel2;
 }
 
-function getStrucData(geneData, transData, elementData, strucColors) {
+
+function getStrucData(geneData, strucColors) {
   const strucData = [];
-  const strucYtext = [];
+  let maxLineIndex = 0;
+  let anchorLine = 0;
+  let anchorPos = 0;
 
-  strucData.push({
-    name: 0,
-    value: [geneData.idx, geneData.start, geneData.end, geneData.group, geneData.gene_id, geneData.chr],
-    itemStyle: {
-      color: strucColors.gene
+  geneData.forEach(function (gene, index) {
+    const geneStart = Number(gene.start);
+    const geneEnd = Number(gene.end);
+    let geneLineIndex;
+    if (geneStart > anchorPos) {
+      geneLineIndex = 0;
+      anchorLine = 0;
+    } else {
+      geneLineIndex = anchorLine + 1;
     }
-  });
-  strucYtext.push(geneData.gene_id);
-
-  transData.forEach(function (item, index) {
+    anchorPos = Math.max(anchorPos, geneEnd);
     strucData.push({
-      name: index + 1,
-      //value:[item.idx, item.start, item.end, item.group, item.ID, item.chr],
-      value: [Number(item[2]), Number(item[0]), Number(item[1]), "transcript", item[3], geneData.chr],
+      name: gene.gene_id,
+      value: [geneLineIndex, geneStart, geneEnd, "gene", gene.gene_id, gene.gene_id, gene.chr, gene.strand],
       itemStyle: {
-        color: strucColors.transcript
-      }
-    })
-    strucYtext.push(item[3]);
-  });
-
-  elementData.forEach(function (item, index) {
-    //console.dir(item);
-    strucData.push({
-      name: index + 1,
-      //value:[item.idx, item.start, item.end, item.group, item.ID, item.chr, 
-      value: [Number(item[2]), Number(item[0]), Number(item[1]), item[3], "", geneData.chr],
-      itemStyle: {
-        color: strucColors[item[3]]
+        color: strucColors.gene
       }
     });
+    gene.ele.forEach(function (item, idx) {
+      strucData.push({
+        name: item[4],
+        value: [Number(item[3]) + geneLineIndex, Number(item[1]), Number(item[2]), item[0], item[4], gene.gene_id, gene.chr, gene.strand],
+        itemStyle: {
+          color: strucColors[item[0]]
+        }
+      });
+      anchorLine = Math.max(anchorLine, Number(item[3]) + geneLineIndex);
+      maxLineIndex = Math.max(maxLineIndex, anchorLine);
+    })
   });
+  const strucYtext = Array(maxLineIndex + 1).fill('');;
 
   return {
     strucData,
     strucYtext
-  }
+  };
+	
 }
 
 
-function splitStuc(strucData, refMergedRange, start) {
+function splitStruc(strucData, refMergedRange, start) {
   const strucSplitedData = [];
   strucData.forEach(item => {
-    //console.dir(item.value);
     const oldRangeStart = item.value[1] - (start - 1) - 0.5 - 0.5;
     const oldRangeEnd = item.value[2] - (start - 1) + 0.5 - 0.5;
     const upSplit = removeLenFromIntervals(refMergedRange, oldRangeStart);
@@ -122,15 +118,57 @@ function splitStuc(strucData, refMergedRange, start) {
       deletedRanges,
       remainingRanges
     } = removeLenFromIntervals(upSplit.remainingRanges, oldRangeEnd - oldRangeStart);
-    //console.dir(deletedRanges);
     deletedRanges.forEach(range => {
       strucSplitedData.push({
         name: item.name,
-        value: [item.value[0], range[0], range[1], ...item.value.slice(3, item.value.length), ...item.value.slice(1, 3)],
+        // liney, panx, pany, type, anno, start, end, geneid, chr, strand
+        value: [item.value[0], range[0], range[1], item.value[3], item.value[4], item.value[1], item.value[2], item.value[5], item.value[6], item.value[7]],
         itemStyle: item.itemStyle
       });
     })
   });
-  return (strucSplitedData);
+  return strucSplitedData;
 }
 
+
+function splitBed(bedData, start, refMergedRange, bedColor) {
+  const bedSplitedData = [];
+  if (bedData !== '') {
+    const trackEnds = [];
+
+    bedData.forEach(item => {
+      const oldRangeStart = item[0] - start;
+      const oldRangeEnd = item[1] - start;
+      let curBedY = 0;
+      while (curBedY < trackEnds.length && oldRangeStart < trackEnds[curBedY]) {
+        curBedY++;
+      }
+      if (curBedY === trackEnds.length) {
+        trackEnds.push(oldRangeEnd);
+      } else {
+        trackEnds[curBedY] = oldRangeEnd;
+      }
+      const upSplit = removeLenFromIntervals(refMergedRange, oldRangeStart);
+      const {
+        deletedRanges,
+        remainingRanges
+      } = removeLenFromIntervals(upSplit.remainingRanges, oldRangeEnd - oldRangeStart);
+      deletedRanges.forEach(range => {
+        bedSplitedData.push({
+          name: curBedY,
+          value: [curBedY, range[0], range[1], "bed", item[2], item[0], item[1], "", item[2], ""],
+          itemStyle: {
+            color: bedColor
+          }
+        });
+      });
+    });
+  }
+  const bedYtext = Array(Math.max(...bedSplitedData.map(v => v.value[0]), -1) + 1).fill('');
+
+  return {
+    bedSplitedData,
+    bedYtext
+  };
+
+}
