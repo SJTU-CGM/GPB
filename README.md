@@ -25,7 +25,7 @@ GPB is a visualization tool that employs a novel flow-based layout to clearly re
 ### VCF mode:
 * <b>VG (v1.60 or later)</b><br>
 * <b>Samtools (v1.16 or later)</b><br>
-* <b>Bcftools (v1.6 or later)</b><br>
+* <b>Bcftools (v1.16 or later)</b><br>
 
 ## Installation procedures
 1. You can download the GPB from Github:

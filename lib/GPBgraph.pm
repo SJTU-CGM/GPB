@@ -37,6 +37,8 @@ sub build_graph {
 	my (undef, $tmp_view)  = tempfile(DIR => $dir_name, SUFFIX => '.view.vcf.gz', UNLINK => 1);
 	my (undef, $tmp_sort)  = tempfile(DIR => $dir_name, SUFFIX => '.sort.vcf.gz', UNLINK => 1);
 	my (undef, $tmp_norm)  = tempfile(DIR => $dir_name, SUFFIX => '.norm.vcf.gz', UNLINK => 1);
+	my (undef, $tmp_gt)  = tempfile(DIR => $dir_name, SUFFIX => '.gt.vcf', UNLINK => 1);
+	my (undef, $tmp_process)  = tempfile(DIR => $dir_name, SUFFIX => '.process.vcf', UNLINK => 1);
 
 	system('/bin/sh', '-c', 
 		qq{bcftools view --threads $thread $region_arg -i 'GT ~ "1[|/]1"' \Q$vcf\E -Oz -o \Q$tmp_view\E 2>/dev/null}) == 0
@@ -48,17 +50,17 @@ sub build_graph {
 		qq{bcftools norm --threads $thread -m- -f \Q${dir_name}/seq.fa\E \Q$tmp_sort\E | bcftools norm --threads $thread -d all -f \Q${dir_name}/seq.fa\E - -Oz -o \Q$tmp_norm\E 2>/dev/null}) == 0
 		or die "Error: bcftools norm failed, exit code: $?\n";
 	system('/bin/sh', '-c',
-		qq{bcftools +setGT --threads $thread \Q$tmp_norm\E -- -t q -i 'GT~"1[|/]1"' -n c:'1|1' | bcftools +setGT --threads $thread -Ov -o \Q${dir_name}/pan.vcf.norm\E -- -t q -i 'GT!~"1[|/]1"' -n 0p 2>/dev/null}) == 0
+		qq{bcftools +setGT --threads $thread \Q$tmp_norm\E -- -t q -i 'GT~"1[|/]1"' -n c:'1|1' | bcftools +setGT --threads $thread -Ov -o \Q$tmp_gt\E -- -t q -e 'GT~"1[|/]1"' -n c:'0|0' 2>/dev/null}) == 0
 		or die "Error: bcftools +setGT failed, exit code: $?\n";
 	unlink $tmp_view, $tmp_sort, $tmp_norm;
 	
-	GPBvcf::process_vcf("${dir_name}/pan.vcf.norm", "${dir_name}/pan.vcf.norm.process");
+	GPBvcf::process_vcf($tmp_gt, $tmp_process);
 
 	system('/bin/sh', '-c',
-	        qq{bcftools norm -d all -Ov -o \Q${dir_name}/pan.vcf.norm.process.norm\E \Q${dir_name}/pan.vcf.norm.process\E 2>/dev/null}) == 0
-	        or die "Error: bcftools sort failed: $?\n";
+	        qq{bcftools norm -d all -Ov -o \Q${dir_name}/pan.norm.vcf\E \Q$tmp_process\E 2>/dev/null}) == 0
+	        or die "Error: bcftools norm failed: $?\n";
 	
-	open my $norm, '<', "${dir_name}/pan.vcf.norm.process.norm" or die "Error: Can't open file '${dir_name}/pan.vcf.norm.process.norm': $!\n";
+	open my $norm, '<', "${dir_name}/pan.norm.vcf" or die "Error: Can't open file '${dir_name}/pan.norm.vcf': $!\n";
 	open my $vcf_out,  '>', "${dir_name}/pan.vcf" or die  "Error: Can't write file '${dir_name}/pan.vcf': $!\n";
         open my $list_out, '>', "${dir_name}/variant_samples.txt" or die  "Error: Can't write file '${dir_name}/variant_samples.txt': $!\n";
 
@@ -82,11 +84,6 @@ sub build_graph {
                 chomp $line;
                 my @f  = split /\t/, $line;
                 my $gt_start = 9;
-                for my $i ($gt_start..$#f) {
-                        $f[$i] =~ tr{/}{|};
-                        $f[$i] =~ s/(1\|0|0\|1|1\|1|1\|\.|\.\|1)/1|1/g;
-                        $f[$i] = '0|0' if $f[$i] eq '.|.';
-                }
 
                 my $count = 0;
                 $count += () = join("\t", @f[$gt_start..$#f]) =~ /1\|1/g;
@@ -96,7 +93,7 @@ sub build_graph {
                 my @hit;
                 for my $i ($gt_start..$#f) {
                         my $gt = $f[$i];
-                        push @hit, $samples[$i - $gt_start] if $gt !~ /^(0\|0|\.\|\.)$/;
+			push @hit, $samples[$i - $gt_start] if $gt !~ /^(0\|0|\.\|\.)$/;
                 }
                 print $list_out join("\t", $f[2], join(',', @hit)), "\n";
 
@@ -117,8 +114,7 @@ sub build_graph {
 
 	unlink "$dir_name/overlap.bed" if -e "$dir_name/overlap.bed";
 	unlink "$dir_name/interval.bed" if -e "$dir_name/interval.bed";
-	unlink "$dir_name/pan.vcf.norm" if -e "$dir_name/pan.vcf.norm";
-	unlink "$dir_name/pan.vcf.norm.process" if -e "$dir_name/pan.vcf.norm.process";
+	unlink "$dir_name/pan.norm.vcf" if -e "$dir_name/pan.norm.vcf";
 	unlink "$dir_name/seq.fa" if -e "$dir_name/seq.fa";
 	unlink "$dir_name/seq.fa.fai" if -e "$dir_name/seq.fa.fai";
 	unlink "$dir_name/pan.vg" if -e "$dir_name/pan.vg";
