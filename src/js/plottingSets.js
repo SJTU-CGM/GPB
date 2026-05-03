@@ -662,16 +662,45 @@ function getStrucSeries(strucSplitedData, refAreaColor, refMarkedArea) {
         const fixed = part === part.toLowerCase()
           ? part.charAt(0).toUpperCase() + part.slice(1)
           : part;
+        const hasExonInfo = curVal.length > 10 && curVal[10];
+        const typeColorMap = {
+          'Gene': '#e74c3c',
+          'Transcript': '#e74c3c',
+          'Exon': '#A1A1A1',
+          'CDS': '#1368BD',
+          'UTR5': '#68A3DE',
+          'UTR3': '#68A3DE',
+	  'UTR': '#68A3DE'
+        };
+        const tagColor = typeColorMap[fixed] || '#666';
+
         return `
-			  <div style="line-height:1.7;">
-				<div style="font-weight:bold;margin-bottom:3px;">
-			${fixed === 'Gene' ? `Gene ${curVal[7]}` : `${fixed} on gene ${curVal[7]}`}
-			</div>
-				<div>ID : <b>${curVal[4]}</b></div>
-				<div>Start : <b>${curVal[5]}</b></div>
-				<div>End : <b>${curVal[6]}</b></div>
-				<div>Strand : <b>${decodeURIComponent(curVal[9])}</b></div>
-			  </div>`;
+          <div style="line-height:1.7;min-width:220px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+              <span style="background:${tagColor};color:#fff;padding:1px 8px;border-radius:3px;font-size:12px;font-weight:bold;">${fixed}</span>
+              <span style="font-weight:bold;color:#333;">${curVal[7]}</span>
+            </div>
+            <div style="background:#f8f9fa;padding:8px 10px;border-radius:4px;">
+              <div style="display:flex;gap:12px;margin-bottom:2px;">
+                <span style="color:#666;min-width:45px;">ID</span><b>${curVal[4]}</b>
+              </div>
+              <div style="display:flex;gap:12px;margin-bottom:2px;">
+                <span style="color:#666;min-width:45px;">Chr</span><b>${curVal[8]}</b>
+              </div>
+              <div style="display:flex;gap:12px;margin-bottom:2px;">
+                <span style="color:#666;min-width:45px;">Start</span><b>${curVal[5]}</b>
+              </div>
+              <div style="display:flex;gap:12px;margin-bottom:2px;">
+                <span style="color:#666;min-width:45px;">End</span><b>${curVal[6]}</b>
+              </div>
+              <div style="display:flex;gap:12px;margin-bottom:2px;">
+                <span style="color:#666;min-width:45px;">Strand</span><b>${decodeURIComponent(curVal[9])}</b>
+              </div>
+              ${hasExonInfo ? `<div style="display:flex;gap:12px;margin-bottom:2px;">
+                <span style="color:#666;min-width:45px;">Exon</span><b>${curVal[10]}</b>
+              </div>` : ''}
+            </div>
+          </div>`;
       }
     }
   };
@@ -1158,11 +1187,19 @@ function getChartOption(axisPointerColor, xMin, xMax, newXLabel, yMax, strucYtex
 }
 
 
-function fillNodePanel(curNode, nodeSeq, nodeSample) {
+function fillNodePanel(curNode, nodeSeq, nodeSample, refInfo) {
+	const fileName = refInfo.chr + '_' + refInfo.start + '-' + refInfo.end
+	
+  const seq = nodeSeq.get(curNode) || '';
   document.getElementById("nodePanelSeq").innerHTML =
-    `<div style="white-space:pre-wrap;word-break:break-all;font-weight:bold;margin-bottom:4px">Sequence of node ${curNode}:</div>`
+    `<br><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+      <div style="white-space:pre-wrap;word-break:break-all;font-weight:bold;">Sequence of node ${curNode}:</div>
+      <button class="btn btn-sm btn-success" onclick="downloadFasta('${curNode}', \`${seq.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\n/g, '\\n')}\`, '${fileName}')" style="font-size:12px;padding:2px 10px;">
+        <span style="margin-right:4px;">⬇</span>Download FASTA
+      </button>
+    </div>`
     + '<textarea class="form-control" readonly style="width:100%;font-family:Courier New,monospace;font-size:13px;resize:none;margin-left:0%" rows="5">'
-    + (nodeSeq.get(curNode) || '')
+    + seq
     + "</textarea>";
 
   const curSampleAll = nodeSample.get(curNode).split(",");
@@ -1170,10 +1207,51 @@ function fillNodePanel(curNode, nodeSeq, nodeSample) {
   curSampleAll.forEach(g => countMap[g] = (countMap[g] || 0) + 1);
   const uniqueGenomes = Object.keys(countMap).sort((a, b) => a.localeCompare(b));
   const textList = uniqueGenomes.map(g => countMap[g] > 1 ? `${g}(${countMap[g]})` : g);
-
   document.getElementById("nodePanelSample").innerHTML =
-    "<b>Detected " + curSampleAll.length + " path(s) from " + uniqueGenomes.length + " genome(s) :</b>"
+    `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+      <b>Detected ${curSampleAll.length} path(s) from ${uniqueGenomes.length} genome(s):</b>
+      <button class="btn btn-sm btn-success" onclick="downloadNodeCsv('${curNode}', '${uniqueGenomes.join(',')}', '${uniqueGenomes.map(g => countMap[g]).join(',')}', '${fileName}')" style="font-size:12px;padding:2px 10px;">
+        <span style="margin-right:4px;">⬇</span>Download CSV
+      </button>
+    </div>`
     + '<textarea class="form-control" readonly style="width:100%;font-family:Courier New,monospace;font-size:13px;resize:none;margin-left:0%;height:180px">'
     + textList.join(", ")
     + "</textarea>";
+}
+
+
+function downloadFasta(nodeId, sequence, fileName) {
+  const fastaContent = `>${nodeId}\n${sequence.match(/.{1,60}/g).join('\n')}`;
+  const blob = new Blob([fastaContent], {
+    type: 'text/plain'
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${fileName}_node${nodeId}.fasta`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+
+function downloadNodeCsv(nodeId, genomesStr, countsStr, fileName) {
+  const genomes = genomesStr.split(',');
+  const counts = countsStr.split(',').map(Number);
+  let csvContent = 'Genome,Count\n';
+  genomes.forEach((g, i) => {
+    csvContent += `${g},${counts[i]}\n`;
+  });
+  const blob = new Blob([csvContent], {
+    type: 'text/csv;charset=utf-8;'
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${fileName}_node${nodeId}_genomes.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }

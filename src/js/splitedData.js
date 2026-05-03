@@ -1,5 +1,3 @@
-
-
 function statNodeSampleN(edges) {
   const nodeSampleN1 = new Map();
   const nodeSampleN2 = new Map();
@@ -35,7 +33,7 @@ function splitXAxis(refMergedRange, start) {
     if (i + 1 < refMergedRange.length) {
       newXSta.push(refMergedRange[i + 1][0] - refMergedRange[i][1]);
     }
-  }	
+  }
   const newXLabel = [];
   let tmpX = 1;
   newXSta.forEach((item, idx) => {
@@ -54,9 +52,9 @@ function splitXAxis(refMergedRange, start) {
   let newXLabel2 = newXLabel.map(item => {
     if (typeof item === 'number') {
       item += Number(start - 1);
-      return item.toLocaleString('en-US'); 
+      return item.toLocaleString('en-US');
     }
-    return item; 
+    return item;
   });
   return newXLabel2;
 }
@@ -86,10 +84,21 @@ function getStrucData(geneData, strucColors) {
         color: strucColors.gene
       }
     });
+    const exonMap = {};
+    (gene.ele || []).forEach(function (item) {
+      if (item[0] === 'exon') {
+        exonMap[item[4]] = [item[4], Number(item[1]), Number(item[2])];
+      }
+    });
     (gene.ele || []).forEach(function (item, idx) {
+      const itemType = item[0];
+      const baseValue = [Number(item[3]) + geneLineIndex, Number(item[1]), Number(item[2]), item[0], item[4], gene.gene_id, gene.chr, gene.strand];
+      const extra = (itemType === 'CDS' || itemType === 'UTR5' || itemType === 'UTR3') && item[5]
+        ? (exonMap[item[5]] || [null, null, null])
+        : [];
       strucData.push({
         name: item[4],
-        value: [Number(item[3]) + geneLineIndex, Number(item[1]), Number(item[2]), item[0], item[4], gene.gene_id, gene.chr, gene.strand],
+        value: baseValue.concat(extra),
         itemStyle: {
           color: strucColors[item[0]]
         }
@@ -104,7 +113,7 @@ function getStrucData(geneData, strucColors) {
     strucData,
     strucYtext
   };
-	
+
 }
 
 
@@ -118,11 +127,16 @@ function splitStruc(strucData, refMergedRange, start) {
       deletedRanges,
       remainingRanges
     } = removeLenFromIntervals(upSplit.remainingRanges, oldRangeEnd - oldRangeStart);
+    const itemType = item.value[3];
+    const isCdsOrUtr = itemType === 'CDS' || itemType === 'UTR5' || itemType === 'UTR3';
+    const extra = isCdsOrUtr && item.value.length > 8
+      ? [item.value[8] + ' (' + item.value[9] + '-' + item.value[10] + ')']
+      : [];
     deletedRanges.forEach(range => {
       strucSplitedData.push({
         name: item.name,
-        // liney, panx, pany, type, anno, start, end, geneid, chr, strand
-        value: [item.value[0], range[0], range[1], item.value[3], item.value[4], item.value[1], item.value[2], item.value[5], item.value[6], item.value[7]],
+        // liney, panx, pany, type, anno, start, end, geneid, chr, strand, exon_info
+        value: [item.value[0], range[0], range[1], item.value[3], item.value[4], item.value[1], item.value[2], item.value[5], item.value[6], item.value[7]].concat(extra),
         itemStyle: item.itemStyle
       });
     })

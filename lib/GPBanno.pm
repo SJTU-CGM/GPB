@@ -523,6 +523,8 @@ sub get_gene_pos {
 			$ra <=> $rb || $a cmp $b
 		} @$gene_anno;
 
+		my %exons;
+
 		foreach my $line (@$gene_anno) {
 			my @f = split /\t/, $line;
 			my ($chr, $class, $start, $end, $strand, $attrs) = @f[0,2,3,4,6,8];
@@ -539,12 +541,20 @@ sub get_gene_pos {
 				}elsif($class eq "mRNA" || $class eq "transcript"){
 					push(@trans_arr, $attr{"ID"});
 					push(@{$gene_pos{'ele'}}, ["transcript", $start, $end, $#trans_arr + 1, $attr{"ID"}]);
-				}elsif ($class =~ /^(exon|CDS|three_prime_UTR|five_prime_UTR|UTR3|UTR5|UTR)$/i) {
+				}elsif ($class eq "exon"){
 					my @idx = grep { $trans_arr[$_] eq $attr{"Parent"} } 0 .. $#trans_arr;
 					next unless @idx;
+					my $tx_idx = $idx[0] + 1;
+					push(@{$gene_pos{'ele'}}, ["exon", $start, $end, $tx_idx, $attr{"ID"} // '']);
+					push @{$exons{$tx_idx}}, [$start, $end, $attr{"ID"} // ''];
+				}elsif ($class =~ /^(CDS|three_prime_UTR|five_prime_UTR|UTR3|UTR5|UTR)$/i) {
+					my @idx = grep { $trans_arr[$_] eq $attr{"Parent"} } 0 .. $#trans_arr;
+					next unless @idx;
+					my $tx_idx = $idx[0] + 1;
 					$class = 'UTR3' if $class eq 'three_prime_UTR';
 					$class = 'UTR5' if $class eq 'five_prime_UTR';
-					push(@{$gene_pos{'ele'}}, [$class, $start, $end, $idx[0] + 1, $attr{"ID"}] // '');
+					my $exon_info = _find_overlapping_exon($start, $end, $exons{$tx_idx});
+					push(@{$gene_pos{'ele'}}, [$class, $start, $end, $tx_idx, $attr{"ID"} // '', $exon_info]);
 				}
 			} else {
 				my %attr;
@@ -562,14 +572,25 @@ sub get_gene_pos {
 					next unless defined $tx_id;
 					push @trans_arr, $tx_id;
 					push @{$gene_pos{'ele'}}, ["transcript", $start, $end, $#trans_arr + 1, $tx_id];
-				} elsif ($class =~ /^(exon|CDS|three_prime_UTR|five_prime_UTR|UTR3|UTR5|UTR)$/i) {
+				} elsif ($class eq "exon") {
 					my $tx_id = $attr{"transcript_id"};
 					next unless defined $tx_id;
 					my @idx = grep { $trans_arr[$_] eq $tx_id } 0 .. $#trans_arr;
 					next unless @idx;
+					my $tx_idx = $idx[0] + 1;
+					my $exon_info = _find_overlapping_exon($start, $end, $exons{$tx_idx});
+					push @{$gene_pos{'ele'}}, ["exon", $start, $end, $tx_idx, $attr{"exon_id"} // '', $exon_info];
+					push @{$exons{$tx_idx}}, [$start, $end, $attr{"exon_id"} // ''];
+				} elsif ($class =~ /^(CDS|three_prime_UTR|five_prime_UTR|UTR3|UTR5|UTR)$/i) {
+					my $tx_id = $attr{"transcript_id"};
+					next unless defined $tx_id;
+					my @idx = grep { $trans_arr[$_] eq $tx_id } 0 .. $#trans_arr;
+					next unless @idx;
+					my $tx_idx = $idx[0] + 1;
 					$class = 'UTR3' if $class eq 'three_prime_UTR';
 					$class = 'UTR5' if $class eq 'five_prime_UTR';
-					push @{$gene_pos{'ele'}}, [$class, $start, $end, $idx[0] + 1, $attr{"exon_id"} // ''];
+					my $exon_info = _find_overlapping_exon($start, $end, $exons{$tx_idx});
+					push @{$gene_pos{'ele'}}, [$class, $start, $end, $tx_idx, $attr{"exon_id"} // '', $exon_info];
 				}
 			}
 		}
@@ -581,6 +602,18 @@ sub get_gene_pos {
 }
 
 
+sub _find_overlapping_exon {
+        my ($start, $end, $exon_list) = @_;
+        return undef unless defined $exon_list && @$exon_list;
+        
+        for my $exon (@$exon_list) {
+                my ($e_start, $e_end, $e_id) = @$exon;
+                if ($start <= $e_end && $end >= $e_start) {
+                        return $e_id;
+                }
+        }
+        return undef;
+}
 
 
 1;
