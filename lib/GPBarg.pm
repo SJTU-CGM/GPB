@@ -7,7 +7,7 @@ use warnings;
 
 
 sub check_input {
-	my ($vcf, $reffa, $graph, $refname, $gff, $geneid, $genelist, $region, $regionlist, $extend, $bed, $pheno, $maxe, $maxd, $threads) = @_;
+	my ($vcf, $reffa, $graph, $refname, $anno, $geneid, $genelist, $region, $regionlist, $extend, $bed, $pheno, $maxe, $maxd, $threads) = @_;
 
 	my $has_vcf_mode = ($vcf || $reffa);
 	my $has_graph_mode = ($graph || $refname);
@@ -15,51 +15,52 @@ sub check_input {
 	if($has_vcf_mode && $has_graph_mode){
 		die "Error: Cannot use both Variant mode and Graph mode parameters simultaneously\n";
 	}elsif(!$has_vcf_mode && !$has_graph_mode){
-		die "Error: Must select one input mode: Variant mode (--vcf/--reffa) or Graph mode (--graph/--refname)\n";
+		die "Error: Must select one input mode: Variant mode (--variant/--ref-fa) or Graph mode (--graph/--ref-name)\n";
 	}else{
-		die "Error: --reffa is required when using --vcf\n" if $vcf && !$reffa;
-        	die "Error: --vcf is required when using --reffa\n" if $reffa && !$vcf;
-        	die "Error: --refname is required when using --graph\n" if $graph && !$refname;
-        	die "Error: --graph is required when using --refname\n" if $refname && !$graph;
+		die "Error: --ref-fa is required when using --variant\n" if $vcf && !$reffa;
+        	die "Error: --variant is required when using --ref-fa\n" if $reffa && !$vcf;
+        	die "Error: --ref-name is required when using --graph\n" if $graph && !$refname;
+        	die "Error: --graph is required when using --ref-name\n" if $refname && !$graph;
 	}
 
-	if(!defined $gff){
-        	die "Error: Please provide the GFF file with gene annotation\n";
+	if(!defined $anno){
+        	die "Error: Please provide the GFF/GTF file with gene annotation\n";
 	}
 
 	my @range_options = ($geneid, $genelist, $region, $regionlist);
 	my $range_count = scalar grep { defined $_ } @range_options;
 	if ($range_count == 0){
-        	die "Error: Please specify one analysis range parameter: --geneid, --genelist, --region, or --regionlist\n";
+        	die "Error: Please specify one analysis range parameter: --geneid, --geneid-list, --region, or --region-list\n";
 	}elsif ($range_count > 1) {
-        	die "Error: Can only specify one analysis range parameter: --geneid, --genelist, --region, or --regionlist\n";
+        	die "Error: Can only specify one analysis range parameter: --geneid, --geneid-list, --region, or --region-list\n";
 	}
 
 	if (defined $extend && !$geneid && !$genelist) {
-    		warn "Warning: --extend parameter can only be used with --geneid or --genelist\n";
+    		warn "Warning: --extend parameter can only be used with --geneid or --geneid-list\n";
 	}
 
-	die "Error: --extend value must be greater than or equal to 0\n" if defined $extend && $extend < 0;
+	die "Error: -e/--extend value must be greater than or equal to 0\n" if defined $extend && $extend < 0;
         die "Error: -d/--max-distance-subpaths value must be greater than or equal to 0\n" if defined $maxd && $maxd < 0;
-        die "Error: -e/--max-merging-iterations value must be greater than or equal to 0\n" if defined $maxe && $maxe < 0;
+        die "Error: -m/--max-merging-iterations value must be greater than or equal to 0\n" if defined $maxe && $maxe < 0;
         die "Error: -t/--threads value must be greater than 0\n" if defined $threads && $threads < 1;
         die "Error: Invalid region format: $region. Expected format: 'chr:start-end' (e.g., chr1:1000-2000), and end must be greater than start.\n" if $region && !validate_region_format($region);
 
-	check_file($vcf, "VCF") if defined $vcf;
+	check_file($vcf, "Variants") if defined $vcf;
 	check_vcf_index($vcf) if defined $vcf;
 	check_file($reffa, "Reference genome") if defined $reffa;
 	check_file($graph, "Graph pangenome") if defined $graph;
 
-	check_file($gff, "GFF") if defined $gff;
-	check_zip($gff) if defined $gff;
-	check_file($bed, "BED") if defined $bed;
-	validate_bed_file($bed) if defined $bed;
+	check_file($anno, "Gene annotation") if defined $anno;
+	check_zip($anno) if defined $anno;
+	validate_anno_file($anno) if defined $anno;
+	check_file($bed, "Additional annotation") if defined $bed;
+	validate_bed_file($bed, 1) if defined $bed;
 	check_file($pheno, "Phenotype") if defined $pheno;
 	validate_phenotype_file($pheno) if defined $pheno;
 
 	check_file($genelist, "Gene list") if defined $genelist;
 	check_file($regionlist, "Region list") if defined $regionlist;
-	validate_regionlist_file($regionlist) if defined $regionlist;
+	validate_bed_file($regionlist, 0) if defined $regionlist;
 
 }
 
@@ -149,8 +150,51 @@ sub validate_region_format {
 }
 
 
+sub validate_anno_file {
+    my ($anno) = @_;
+    open my $fh, '<', $anno or die "Cannot open $anno: $!";
+
+    my ($line_num, $fmt, $has_gene, $has_transcript);
+
+    while (<$fh>) {
+    	next if /^#/ || /^\s*$/;
+	$line_num++;
+	chomp;
+
+	my @cols = split /\t/, $_, -1;
+	die "Line $line_num: expected 9 columns, got " . scalar(@cols) . "\n" if @cols != 9;
+
+	unless ($fmt) {
+		my $a = $cols[8];
+		if ($a =~ /gene_id\s/) { $fmt = 'gtf'; }
+		elsif ($a =~ /=/) { $fmt = 'gff'; }
+		else {die "Error: Please check the format of gene annotation file '$anno', only GFF3 or GTF format is accepted.\n"; }
+	}
+
+	if ($fmt eq 'gtf' && (!$has_gene || !$has_transcript)) {
+		$has_gene = 1 if $cols[2] eq 'gene';
+		$has_transcript = 1 if $cols[2] eq 'transcript' || $cols[2] eq 'mRNA';
+	}
+
+	my ($s, $e) = @cols[3,4];
+	die "Error: Line $line_num in file '$anno': start/end must be positive integers\n" unless $s =~ /^\d+$/ && $e =~ /^\d+$/;
+	die "Error: Line $line_num in file '$anno': start > end ($s > $e)\n" if $s > $e;
+    }
+
+    die "Error: No valid lines found in file '$anno'. Please check the gene annotation file.\n" unless $line_num && $fmt;
+    close $fh;
+
+    if ($fmt eq 'gtf') {
+    	die "Error: Gene annotation file '$anno' appears to lack gene features, please check the file\n" unless $has_gene;
+	die "Error: Gene annotation file '$anno' appears to lack transcript features, please check the file\n" unless $has_transcript;
+    }
+
+    return 1;
+}
+
+
 sub validate_bed_file {
-    my ($file) = @_;
+    my ($file, $isanno) = @_;
     open my $fh, '<', $file or die "Error: Can't open file '$file': $!\n";
     my $line_no = 0;
     while (my $line = <$fh>) {
@@ -160,7 +204,11 @@ sub validate_bed_file {
         $line =~ s/\s+$//;
         my @f = split /\t/, $line;
 
-        @f == 4 or die "Error: Line $line_no in file '$file': expected 4 columns (sequence<tab>start<tab>end<tab>annotation); got " . scalar(@f) . "\n";
+	if($isanno){
+        	@f == 4 or die "Error: Line $line_no in file '$file': expected 4 columns (sequence, start, end, annotation); got " . scalar(@f) . "\n";
+	}else{
+		@f == 3 or die "Error: Line $line_no in file '$file': expected 3 columns (sequence, start, end); got " . scalar(@f) . "\n";
+	}
 
         $f[1] =~ /^[0-9]+$/ or die "Error: Line $line_no in file '$file': start '$f[1]' not integer \n";
         $f[2] =~ /^[0-9]+$/ or die "Error: Line $line_no in file '$file': end   '$f[2]' not integer \n";
@@ -209,30 +257,6 @@ sub validate_phenotype_file {
 	return 1;
 }
 
-
-sub validate_regionlist_file {
-	my ($regionlist) = @_;
-
-	open my $fh, '<', $regionlist or die "Error: Can't open file '$regionlist': $!\n";
-
-	while (my $line = <$fh>) {
-		chomp $line;
-		next if $line =~ /^#/;
-		next if $line =~ /^\s*$/;
-
-		my ($chr, $start, $end) = $line =~ /^(?:chr)?([^:\s]+):([\d,]+)-([\d,]+)$/i
-        		or die "Error: Invalid region format: $line. Expected format: 'chr:start-end' (e.g., chr1:1000-2000).\n";
-		
-		s/,//g for ($start, $end);
-
-		$end > $start or die "Error: Invalid region format: $line. End must be greater than start.\n";
-
-	}
-
-	close $fh;
-
-	return 1;
-}
 
 
 1;

@@ -86,7 +86,7 @@ function getStrucData(geneData, strucColors) {
         color: strucColors.gene
       }
     });
-    gene.ele.forEach(function (item, idx) {
+    (gene.ele || []).forEach(function (item, idx) {
       strucData.push({
         name: item[4],
         value: [Number(item[3]) + geneLineIndex, Number(item[1]), Number(item[2]), item[0], item[4], gene.gene_id, gene.chr, gene.strand],

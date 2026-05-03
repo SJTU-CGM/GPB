@@ -582,6 +582,8 @@ function renderItem(params, api) {
     var height = api.size([0, 1])[1] * 0.3;
   } else if (type == 'UTR5') {
     var height = api.size([0, 1])[1] * 0.3;
+  } else if (type == 'UTR') {
+    var height = api.size([0, 1])[1] * 0.3;
   } else if (type == 'bed') {
     var height = api.size([0, 1])[1] * 0.5;
   } else {

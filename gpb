@@ -12,39 +12,39 @@ use GPBpheno;
 use GPBbed;
 
 my $usage = "\nUsage:
-For variant data: gpb --vcf <in.vcf> --reffa <ref.fa> --gff <ref_gene.gff>  (--geneid ID | --genelist list.txt | --region chr:start-end | --regionlist list.txt) [OPTIONS]
-For pangenome graph: gpb --graph <graph.og> --refname <ref_path> --gff <ref_gene.gff>  (--geneid ID | --genelist list.txt | --region chr:start-end | --regionlist list.txt) [OPTIONS]
+For variant data: gpb --variant <in.vcf> --ref-fa <ref.fa> --gene-anno <ref_gene.gff3/gtf> (--geneid <ID> | --geneid-list <list.file> | --region <chr:start-end> | --region-list <list.bed>) [OPTIONS]
+For pangenome graph: gpb --graph <graph.og> --ref-name <ref_path> --gene-anno <ref_gene.gff3/gtf> (--geneid <ID> | --geneid-list <list.file> | --region <chr:start-end> | --region-list <list.bed>) [OPTIONS]
 
 REQUIRED ARGUMENTS
   1. Input mode (choose one group):
-    --vcf		<file>		VCF file with variants (.vcf). (requires --reffa)
-    --reffa		<file>		Reference genome in FASTA format (.fa). (requires --vcf)
+    -v, --variant	<file>		Variants in VCF format (.vcf). (requires '--ref-fa')
+    -r, --ref-fa	<file>		Reference genome in FASTA format (.fa). (requires '--variant')
 
-    --graph		<file>		Variation graph in ODGI format (.og). (requires --refname)
-    --refname		<string>	Name of the reference path in the graph. (requires --graph)
+    -g, --graph		<file>		Variation graph in ODGI format (.og). (requires '--ref-name')
+    -R, --ref-name	<string>	Name of the reference path in the graph. (requires '--graph')
 
   2. Reference gene annotation:
-    --gff		<file>		Gene annotation file in GFF format for the reference genome.	
+    -a, --gene-anno	<file>		Gene annotation file in GFF3/GTF format for the reference genome.	
 
   3. Analysis range (choose one)
     --geneid		<string>	Single gene ID to analyze.
-    --genelist		<file>		File containing list of gene IDs (one per line).
+    --geneid-list	<file>		File containing list of gene IDs (one per line).
     --region		<string>	Single genomic region in 'chr:start-end' format (e.g. chr1:1000-2000).
-    --regionlist	<file>		File containing multiple genomic regions (one per line).
+    --region-list	<file>		BED file with genomic regions (chrom<tab>start<tab>end, 0-based).
 
 OPTIONAL ARGUMENTS
-    --bed 		<file>		Additional reference-genome annotations besides genes in BED format
+    -x, --extra-anno	<file>		Additional reference-genome annotations besides genes in BED format
     					(e.g. repeats, domains). 
-    --pheno		<file>		Tab-delimited phenotype matrix: first column contains path identifiers 
+    -p, --pheno		<file>		Tab-delimited phenotype matrix: first column contains path identifiers 
     					(header: 'Path'), remaining columns represent different phenotype with 
 					corresponding names as headers.    
-					Missing values in the file are indicated by -, NA, NaN, null, None,
-				       	NULL, undefined, unknown or Unknown.					
+					Missing values in the file are indicated by '-', 'NA', 'NaN', 'null', 
+					'None',	'NULL', 'undefined', 'unknown' or 'Unknown'.					
 
-    -o, --out		<string>	Output file name.
+    -o, --out		<string>	Output directory name.
 
     -e, --extend	<n>		Extend analysis region by N bp upstream and downstream of genes.
-    					Only work with --geneid or --genelist.
+    					Only work with '--geneid' or '--geneid-list'.
     					(Default:10)
 
     -d,			<n>		Parameter for 'odgi extract'.
@@ -61,12 +61,11 @@ OPTIONAL ARGUMENTS
 
     -h, --help				Print usage page.
 
-
 \n";
 
 die $usage if @ARGV<1;
 
-my ($vcf, $reffa, $graph, $refname, $gff);
+my ($vcf, $reffa, $graph, $refname, $anno);
 my ($geneid, $genelist, $region, $regionlist);
 my ($bed, $pheno, $out, $help);
 my $extend;
@@ -76,28 +75,28 @@ my $maxe = 3;
 
 GetOptions(
    
-   'vcf=s'		=> \$vcf,
-   'reffa=s'		=> \$reffa,
-   'graph=s'		=> \$graph,
-   'refname=s'		=> \$refname,
+   'v|variant=s'	=> \$vcf,
+   'r|ref-fa=s'		=> \$reffa,
+   'g|graph=s'		=> \$graph,
+   'R|ref-name=s'	=> \$refname,
 
-   'gff=s'		=> \$gff,
+   'a|gene-anno=s'	=> \$anno,
 
    'geneid=s'		=> \$geneid,
-   'genelist=s'		=> \$genelist,
+   'geneid-list=s'	=> \$genelist,
    'region=s'		=> \$region,
-   'regionlist=s'	=> \$regionlist,
+   'region-list=s'	=> \$regionlist,
 
-   'bed=s'		=> \$bed,
-   'pheno=s'		=> \$pheno,
+   'x|extra-anno=s'	=> \$bed,
+   'p|pheno=s'		=> \$pheno,
 
-   'out|o=s'		=> \$out,
+   'o|out=s'		=> \$out,
 
-   'extend|e=i'		=> \$extend,
-   'max-distance-subpaths|d=i'	=> \$maxd,
-   'max-merging-iterations|m=i'	=> \$maxe,
-   'threads|t=i'	=> \$threads,
-   'help|h!'		=> \$help
+   'e|extend=i'		=> \$extend,
+   'd|max-distance-subpaths=i'	=> \$maxd,
+   'm|max-merging-iterations=i'	=> \$maxe,
+   't|threads=i'	=> \$threads,
+   'h|help!'		=> \$help
 
 );
 
@@ -106,7 +105,7 @@ die $usage if $help;
 my $has_vcf_mode = ($vcf || $reffa);
 my $has_graph_mode = ($graph || $refname);
 
-GPBarg::check_input($vcf, $reffa, $graph, $refname, $gff, $geneid, $genelist, $region, $regionlist, $extend, $bed, $pheno, $maxe, $maxd, $threads);
+GPBarg::check_input($vcf, $reffa, $graph, $refname, $anno, $geneid, $genelist, $region, $regionlist, $extend, $bed, $pheno, $maxe, $maxd, $threads);
 
 if($has_vcf_mode){
 	die "Please install 'vg' first\n" if(system("command -v vg > /dev/null 2>&1") != 0);
@@ -120,10 +119,12 @@ if (defined $geneid || defined $genelist) {
 }
 
 my $dir_name = GPBarg::mk_outdir($out);
+my $anno_dir = "gene_anno";
+my $graph_dir = "gene_graph";
 
 printLog("Extracting gene annotation information...");
-mkdir "${dir_name}/gff" or die "Cannot create ${dir_name}/gff: $!\n";
-my $interval_arr = GPBanno::get_interval($geneid, $genelist, $region, $regionlist, $extend, $gff, $dir_name);
+mkdir "${dir_name}/$anno_dir" or die "Cannot create ${dir_name}/$anno_dir: $!\n";
+my $interval_arr = GPBanno::get_interval($geneid, $genelist, $region, $regionlist, $extend, $anno, "$dir_name/$anno_dir");
 
 if ($has_vcf_mode) {
 	printLog("Constructing pangenome graph with VG...");
@@ -132,7 +133,7 @@ if ($has_vcf_mode) {
 }
 
 mkdir "${dir_name}/visualization" or die "Cannot create ${dir_name}/visualization: $!\n";
-mkdir "${dir_name}/gfa" or die "Cannot create ${dir_name}/gfa: $!\n";
+mkdir "${dir_name}/$graph_dir" or die "Cannot create ${dir_name}/$graph_dir: $!\n";
 
 foreach my $interval (@$interval_arr) {
 	my ($name, $chr, $start, $end) = @$interval;
@@ -142,25 +143,26 @@ foreach my $interval (@$interval_arr) {
 	my $ref_info;
 	if ($has_vcf_mode){
 		printLog("- Extracting subgraph with ODGI...");
-		GPBgraph::extract_subgraph($graph, $chr, "$chr:$start-$end", $dir_name, $interval->[0], $maxd, $maxe, $threads);
+		GPBgraph::extract_subgraph($graph, $chr, "$chr:$start-$end", $dir_name, $graph_dir, $interval->[0], $maxd, $maxe, $threads);
 		printLog("- Performing hierarchical layout of the sequence graph and computing coordinates...");
-		($node_add_sample, $edge_out, $ref_info) = GPBgfa::parse_variant_gfa("$dir_name/gfa/$name.gfa", "$dir_name/variant_samples.txt", "$dir_name/pan.vcf");
+		($node_add_sample, $edge_out, $ref_info) = GPBgfa::parse_variant_gfa("$dir_name/$graph_dir/$name.gfa", "$dir_name/variant_samples.txt", "$dir_name/pan.vcf");
 	} elsif ($has_graph_mode) {
 		printLog("- Extracting subgraph with ODGI...");
-		GPBgraph::extract_subgraph($graph, $refname.".".$chr, "$refname.$chr:$start-$end", $dir_name, $name, $maxd, $maxe, $threads);
+		GPBgraph::extract_subgraph($graph, $refname.".".$chr, "$refname.$chr:$start-$end", $dir_name, $graph_dir, $name, $maxd, $maxe, $threads);
 		printLog("- Performing hierarchical layout of the sequence graph and computing coordinates...");
-		($node_add_sample, $edge_out, $ref_info) = GPBgfa::parse_graph_gfa("$dir_name/gfa/$name.gfa", $refname);
+		($node_add_sample, $edge_out, $ref_info) = GPBgfa::parse_graph_gfa("$dir_name/$graph_dir/$name.gfa", $refname);
 	}
 	if (grep { @$_[2] <= 0 } @$edge_out) {
     		warn "Warning: Complex mutation from overlapping variants in '$name' region exceeds current handling capability.\n";
 		next;
 	}
 
-	printLog("- Adding gene annotation track from GFF file...");
-        my $all_gene_pos = GPBanno::get_gene_pos("$dir_name/gff/$name.gff");
+	printLog("- Adding gene annotation track...");
+	my $format = GPBanno::detect_anno_format($anno);
+        my $all_gene_pos = GPBanno::get_gene_pos("$dir_name/$anno_dir/$name.$format");
         my $bed_data;
         if (defined $bed){
-                printLog("- Adding additional annotation track from BED file...");
+                printLog("- Adding additional annotation track...");
                 $bed_data = GPBbed::load_bed($bed, $interval);
         } else {
                 $bed_data = '';

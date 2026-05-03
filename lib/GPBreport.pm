@@ -157,7 +157,8 @@ $(document).ready(function () {
       "exon": "#A1A1A1",
       "CDS": "#1368BD",
       "UTR3": "#68A3DE",
-      "UTR5": "#68A3DE"
+      "UTR5": "#68A3DE",
+      "UTR": "#68A3DE"
     };
 
     const refNodeColors = ["#424242", "#757575"];
@@ -390,7 +391,8 @@ $(document).ready(function() {
 		"exon": "#A1A1A1", 
 		"CDS": "#1368BD",
 		"UTR3": "#68A3DE",
-		"UTR5": "#68A3DE"
+		"UTR5": "#68A3DE",
+		"UTR": "#68A3DE"
 		};
 
 		const refNodeColors = ["#424242", "#757575"];
