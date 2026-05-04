@@ -90,6 +90,7 @@ sub export_figure {
 <meta charset="utf-8">
 <title>GPB report</title>
 <link rel="stylesheet" type="text/css" href="./css/bootstrap_5.1.1_css_bootstrap.min.css">
+<link rel="stylesheet" type="text/css" href="./css/colorPicker.css">
 <script type="text/javascript" charset="utf8" src="./js/jquery-3.5.1.js"></script> 
 <script type="text/javascript" charset="utf8" src="./js/echarts.js"></script> 
 <script type="text/javascript" charset="utf8" src="./js/bootstrap_5.1.1_js_bootstrap.bundle.min.js"></script> 
@@ -97,6 +98,7 @@ sub export_figure {
 <script type="text/javascript" charset="utf8" src="./js/nodesLayout.js"></script> 
 <script type="text/javascript" charset="utf8" src="./js/plottingSets.js"></script>
 <script type="text/javascript" charset="utf8" src="./js/nodesInfo.js"></script>
+<script type="text/javascript" charset="utf8" src="./js/colorPicker.js"></script>
 </head>
 
 <body>
@@ -120,11 +122,55 @@ sub export_figure {
   <br>
   <hr>
   <br>
-  <div id="phenoPanel" class="container mt-4">
-    <div class="d-flex gap-2">
-      <select id="phenSelected" class="form-select form-select-sm w-auto">
-      </select>
-      <button id="refreshBtn" class="btn btn-primary btn-sm"> <i class="bi bi-arrow-clockwise" id="refreshIcon"></i> Refresh </button>
+  <div class="row align-items-center">
+    <div class="col-1  d-flex align-items-center gap-2">
+      <label class="label-inline">Colors:</label>
+    </div>
+    <div class="col-4 d-flex align-items-center gap-2">
+      <label class="label-inline">Reference node</label>
+      <div class="custom-select flex-grow-1" id="refWrapper">
+        <div class="select-trigger" onclick="toggleDropdown(\'ref\')">
+          <div class="trigger-colors" id="refTriggerColors"></div>
+          <span class="trigger-arrow">▼</span> </div>
+        <div class="select-dropdown" id="refDropdown"></div>
+      </div>
+    </div>
+    <div class="col-4  d-flex align-items-center gap-2">
+      <label class="label-inline">Non-reference node</label>
+      <div class="custom-select flex-grow-1" id="altWrapper">
+        <div class="select-trigger" onclick="toggleDropdown(\'alt\')">
+          <div class="trigger-colors" id="altTriggerColors"></div>
+          <span class="trigger-arrow">▼</span> </div>
+        <div class="select-dropdown" id="altDropdown"></div>
+      </div>
+    </div>
+    <div class="col-1  d-flex align-items-center gap-2">
+      <label class="label-inline">Edge</label>
+      <div class="color-trigger" onclick="document.getElementById(\'arrowInput\').click()">
+        <div class="color-box" id="arrowBox">
+          <input type="color" id="arrowInput" value="#bababa" onchange="updatePreview()">
+        </div>
+      </div>
+    </div>
+    <div class="col-1  d-flex align-items-center gap-2">
+      <label class="label-inline">Reference region</label>
+      <div class="color-trigger" onclick="document.getElementById(\'refAreaInput\').click()">
+        <div class="color-box" id="refAreaBox">
+          <input type="color" id="refAreaInput" value="#ebf0e4" onchange="updatePreview()">
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="phenoPanel" class="mt-4">
+    <div class="row align-items-center">
+      <div class="col-1  d-flex align-items-center gap-2">
+        <label class="label-inline">Phenotype:</label>
+      </div>
+      <div class="col-2 d-flex align-items-center gap-5">
+        <select id="phenSelected" class="form-select form-select-sm w-auto">
+        </select>
+        <button id="refreshBtn" class="btn btn-primary btn-sm"> <i class="bi bi-arrow-clockwise" id="refreshIcon"></i> Refresh </button>
+      </div>
     </div>
   </div>
   <br>
@@ -162,14 +208,25 @@ $(document).ready(function () {
       "UTR": "#68A3DE"
     };
 
-    const refNodeColors = ["#424242", "#757575"];
-    const altNodePalette = ["#3BA272", "#FAC858", "#73C0DE", "#EE6666", "#91CC75", "#5470C6", "#EA7CCC", "#FC8452"];
-    const refAreaColor = "#ebf0e4";
-    const arrowColor = "#bababa";
+
+    //const refNodeColors = ["#424242", "#757575"];
+    //const altNodePalette = ["#3BA272", "#FAC858", "#73C0DE", "#EE6666", "#91CC75", "#5470C6", "#EA7CCC", "#FC8452"];
+    //const refAreaColor = "#ebf0e4";
+    //const arrowColor = "#bababa";
+    let refNodeColors, altNodePalette, refAreaColor, arrowColor;
     const axisPointerColor = "#e38e28";
     const bedColor = "gray";
 
-    const arrorWidth = 0.5;
+    function updateColorsFromPicker() {
+      const config = getColorConfig();
+      refNodeColors = config.refNodeColors;
+      altNodePalette = config.altNodePalette;
+      arrowColor = config.arrowColor;
+      refAreaColor = config.refAreaColor;
+    }
+    updateColorsFromPicker();
+
+    const arrowWidth = 0.5;
     const yMax = graphData.edge.filter(r=>r[0]==="0+").reduce((s,r)=>s+r[2],0);
 
     document.getElementById("region_chr").innerHTML = refInfo.chr
@@ -208,21 +265,9 @@ $(document).ready(function () {
 
     const {
       nodeYRange,
-      blockArror,
+      blockArrow,
       lineData
     } = layoutAll(sortedNodes, groupedEdge, nodeXPos, yMax);
-    const {
-      seriesBlockList,
-      blockNode,
-      blockColors
-    } = getBlockSeries(nodeXPos, nodeYRange, blockArror, sortedNodes, nodeSampleN, arrorWidth, refNodes, refNodeColors, altNodePalette);
-    const seriesLineList = getLineSeries(lineData, arrorWidth, arrowColor);
-
-    const {
-      graphNodePos,
-      seriesGraphNodeList
-    } = getGraphNodeSeries(nodeXPos, blockNode, blockColors, 0.9);
-    const seriesGraphEdgeList = getGraphEdgeSeries(graphNodePos, groupedEdge);
 
     const newXLabel = splitXAxis(refMergedRange, graphStart);
 
@@ -231,14 +276,14 @@ $(document).ready(function () {
       strucYtext
     } = getStrucData(geneData, strucColors);
     const strucSplitedData = splitStruc(strucData, refMergedRange, graphStart);
-    const seriesGeneStruc = getStrucSeries(strucSplitedData, refAreaColor, refMarkedArea);
+    //const seriesGeneStruc = getStrucSeries(strucSplitedData, refAreaColor, refMarkedArea);
     const seriesGeneStrand = getStrandSeries(strucSplitedData);
 
     const {
       bedSplitedData,
       bedYtext
     } = splitBed(bedData, graphStart, refMergedRange, bedColor);
-    const seriesBed = getBedSeries(bedSplitedData, refAreaColor, refMarkedArea);
+    //const seriesBed = getBedSeries(bedSplitedData, refAreaColor, refMarkedArea);
 
 
     let phenGroupName = "";
@@ -247,6 +292,23 @@ $(document).ready(function () {
     let phenTrackMaxN = 0;
 
     function refreshChart() {
+      updateColorsFromPicker(); 
+      const {
+        seriesBlockList,
+        blockNode,
+        blockColors
+      } = getBlockSeries(nodeXPos, nodeYRange, blockArrow, sortedNodes, nodeSampleN, arrowWidth, refNodes, refNodeColors, altNodePalette);
+      const seriesLineList = getLineSeries(lineData, arrowWidth, arrowColor);
+
+      const {
+        graphNodePos,
+        seriesGraphNodeList
+      } = getGraphNodeSeries(nodeXPos, blockNode, blockColors, 0.9);
+      const seriesGraphEdgeList = getGraphEdgeSeries(graphNodePos, groupedEdge);
+
+      const seriesGeneStruc = getStrucSeries(strucSplitedData, refAreaColor, refMarkedArea);
+      const seriesBed = getBedSeries(bedSplitedData, refAreaColor, refMarkedArea);
+
       if (phenoMetaData !== "") {
         const curPhen = document.getElementById("phenSelected").value;
         const curPhenIdx = phenoNameList.indexOf(curPhen);

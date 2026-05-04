@@ -402,7 +402,7 @@ function getDisPhenTrackSeries(phenData, phenGroupName, nodeXPos, axisIdx, block
 }
 
 
-function getBlockSeries(nodeXPos, nodeYRange, blockArror, sortedNodes, nodeSampleN, arrorWidth, refNodes, refNodeColors, altNodePalette) {
+function getBlockSeries(nodeXPos, nodeYRange, blockArrow, sortedNodes, nodeSampleN, arrowWidth, refNodes, refNodeColors, altNodePalette) {
 
   const blockDataList = [];
   const blockColors = [];
@@ -411,12 +411,61 @@ function getBlockSeries(nodeXPos, nodeYRange, blockArror, sortedNodes, nodeSampl
   let refNodeNum = 0;
   const maxSampleN = Math.max(...Array.from(nodeSampleN.values()));
 
+  function colorInterpolate(color1, color2, ratio) {
+    function parseColor(color) {
+      color = color.trim();
+      if (color.startsWith('#')) {
+        let hex = color.slice(1);
+        if (hex.length === 3) {
+          hex = hex.split('').map(c => c + c).join('');
+        }
+        return [
+          parseInt(hex.slice(0, 2), 16),
+          parseInt(hex.slice(2, 4), 16),
+          parseInt(hex.slice(4, 6), 16)
+        ];
+      } else if (color.startsWith('rgb')) {
+        const nums = color.match(/\d+/g);
+        return [parseInt(nums[0]), parseInt(nums[1]), parseInt(nums[2])];
+      }
+      return [128, 128, 128];
+    }
+    const c1 = parseColor(color1);
+    const c2 = parseColor(color2);
+    const r = Math.round(c1[0] + (c2[0] - c1[0]) * ratio);
+    const g = Math.round(c1[1] + (c2[1] - c1[1]) * ratio);
+    const b = Math.round(c1[2] + (c2[2] - c1[2]) * ratio);
+    return 'rgb(' + r + ',' + g + ',' + b + ')';
+  }
+
   sortedNodes.forEach((node, idx) => {
     if (node != "0+" && node != "Inf+") {
-      const cur_color = 255 - 60 - (nodeSampleN.get(node) / maxSampleN) * 100;
+      const ratio = nodeSampleN.get(node) / maxSampleN;
+      let curColor;
 
-      if (blockArror[node]) {
-        arrPos = blockArror[node];
+      if (refNodes.includes(node)) {
+        if (refNodeColors && refNodeColors.length === 2) {
+          curColor = colorInterpolate(refNodeColors[0], refNodeColors[1], ratio);
+        } else if (refNodeColors && refNodeColors.length > 0) {
+          curColor = refNodeColors[refNodeNum % refNodeColors.length];
+        } else {
+          const gray = 255 - 60 - ratio * 100;
+          curColor = 'rgb(' + gray + ',' + gray + ',' + gray + ')';
+        }
+        refNodeNum++;
+      } else {
+        if (altNodePalette && altNodePalette.length === 2) {
+          curColor = colorInterpolate(altNodePalette[0], altNodePalette[1], ratio);
+        } else if (altNodePalette && altNodePalette.length > 0) {
+          curColor = altNodePalette[altNodeNum % altNodePalette.length];
+        } else {
+          curColor = '#cccccc';
+        }
+        altNodeNum++;
+      }
+
+      if (blockArrow[node]) {
+        arrPos = blockArrow[node];
         nodeYRange[node].forEach(block => {
           const points = [
             [nodeXPos[node].xstart, -block.ystart],
@@ -426,14 +475,14 @@ function getBlockSeries(nodeXPos, nodeYRange, blockArror, sortedNodes, nodeSampl
           arrPos.forEach(item => {
             if (item[0] > block.ystart && item[1] < block.yend) {
               points.push([nodeXPos[node].xend, -item[0]]);
-              points.push([nodeXPos[node].xend + arrorWidth, -(item[0] + item[1]) / 2]);
+              points.push([nodeXPos[node].xend + arrowWidth, -(item[0] + item[1]) / 2]);
               points.push([nodeXPos[node].xend, -item[1]]);
             }
           });
           points.push([nodeXPos[node].xend, -block.ystart]);
           blockDataList.unshift(points);
           blockNode.unshift(node);
-          blockColors.unshift(refNodes.includes(node) ? 'rgb(' + cur_color + ',' + cur_color + ',' + cur_color + ')' : altNodePalette[(idx - refNodeNum) % altNodePalette.length]);
+          blockColors.unshift(curColor);
         });
       } else {
         nodeYRange[node].forEach(block => {
@@ -444,11 +493,8 @@ function getBlockSeries(nodeXPos, nodeYRange, blockArror, sortedNodes, nodeSampl
             [nodeXPos[node].xend, -block.ystart]
           ]);
           blockNode.unshift(node);
-          blockColors.unshift(refNodes.includes(node) ? 'rgb(' + cur_color + ',' + cur_color + ',' + cur_color + ')' : altNodePalette[(idx - refNodeNum) % altNodePalette.length]);
+          blockColors.unshift(curColor);
         });
-      }
-      if (!refNodes.includes(node)) {
-        altNodeNum++;
       }
     }
   });

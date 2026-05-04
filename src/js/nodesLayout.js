@@ -294,10 +294,10 @@ function layoutAll(sortedNodes, groupedEdge, nodeXPos, init_yend) {
   nodeYRange[sortedNodes[0]] = [{
     ystart: 0,
     yend: init_yend,
-    arror: [init_yend / 2]
+    arrow: [init_yend / 2]
   }]
   const lineData = [];
-  const blockArror = {};
+  const blockArrow = {};
 
   for (const curFrom of sortedNodes) {
     if (groupedEdge[curFrom]) {
@@ -330,10 +330,10 @@ function layoutAll(sortedNodes, groupedEdge, nodeXPos, init_yend) {
                 curStart + (curEnd - curStart) / 4, curStart + (curEnd - curStart) * 3 / 4
               ]);
             }
-            if (blockArror[curFrom]) {
-              blockArror[curFrom].push([curStart + (curEnd - curStart) / 4, curStart + (curEnd - curStart) * 3 / 4]);
+            if (blockArrow[curFrom]) {
+              blockArrow[curFrom].push([curStart + (curEnd - curStart) / 4, curStart + (curEnd - curStart) * 3 / 4]);
             } else {
-              blockArror[curFrom] = [
+              blockArrow[curFrom] = [
                 [curStart + (curEnd - curStart) / 4, curStart + (curEnd - curStart) * 3 / 4]
               ];
             }
@@ -348,7 +348,7 @@ function layoutAll(sortedNodes, groupedEdge, nodeXPos, init_yend) {
 	
   return {
     nodeYRange,
-    blockArror,
+    blockArrow,
     lineData
   };
 }
