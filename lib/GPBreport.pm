@@ -166,9 +166,13 @@ sub export_figure {
       <div class="col-1  d-flex align-items-center gap-2">
         <label class="label-inline">Phenotype:</label>
       </div>
-      <div class="col-2 d-flex align-items-center gap-5">
+      <div class="col-6 d-flex align-items-center gap-5">
         <select id="phenSelected" class="form-select form-select-sm w-auto">
         </select>
+	<div class="d-flex align-items-center gap-2">
+          <input class="form-check-input" type="checkbox" id="monoCheck" style="margin-top: 0;">
+          <label class="form-check-label text-nowrap mb-0" for="monoCheck">Use node colors</label>
+        </div>
         <button id="refreshBtn" class="btn btn-primary btn-sm"> <i class="bi bi-arrow-clockwise" id="refreshIcon"></i> Refresh </button>
       </div>
     </div>
@@ -303,6 +307,8 @@ $(document).ready(function () {
       const seriesGeneStruc = getStrucSeries(strucSplitedData, refAreaColor, refMarkedArea);
       const seriesBed = getBedSeries(bedSplitedData, refAreaColor, refMarkedArea);
 
+      const withColor = document.getElementById("monoCheck").checked;
+
       if (phenoMetaData !== "") {
         const curPhen = document.getElementById("phenSelected").value;
         const curPhenIdx = phenoNameList.indexOf(curPhen);
@@ -316,7 +322,7 @@ $(document).ready(function () {
         if (curPhenInfo[1]) {
           phenGroupName = [phenoMetaData[curPhenIdx][0]];
           phenoYmax = Math.max(...Object.values(phenData).flatMap(a => a.slice(2, 5)));
-          seriesPhenTrackList = getConPhenTrackSeries(phenData, phenGroupName, nodeXPos, 4, blockColors, refAreaColor, refMarkedArea);
+          seriesPhenTrackList = getConPhenTrackSeries(phenData, phenGroupName, nodeXPos, 4, blockNode, blockColors, refAreaColor, refMarkedArea, withColor);
         } else {
           phenGroupName = [...phenoMetaData[curPhenIdx][2]];
           const hasLastGt0 = Object.values(phenData)
@@ -325,7 +331,7 @@ $(document).ready(function () {
             phenGroupName.push("MISSING");
           }
           phenoYmax = Math.max(...Object.values(phenData).flat());
-          seriesPhenTrackList = getDisPhenTrackSeries(phenData, phenGroupName, nodeXPos, 4, blockNode, blockColors, refAreaColor, refMarkedArea);
+          seriesPhenTrackList = getDisPhenTrackSeries(phenData, phenGroupName, nodeXPos, 4, blockNode, blockColors, refAreaColor, refMarkedArea, withColor);
         }
         phenTrackMaxN = phenGroupName.length;
 

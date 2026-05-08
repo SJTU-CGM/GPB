@@ -206,7 +206,7 @@ function getGraphEdgeSeries(graphNodePos, groupedEdge) {
 }
 
 
-function getConPhenTrackSeries(phenData, phenGroupName, nodeXPos, axisIdx, blockNode, blockColors, refAreaColor, refMarkedArea) {
+function getConPhenTrackSeries(phenData, phenGroupName, nodeXPos, axisIdx, blockNode, blockColors, refAreaColor, refMarkedArea, withColor = false) {
 
   const phenTrackSta = [];
   Object.keys(nodeXPos).forEach(node => {
@@ -224,14 +224,84 @@ function getConPhenTrackSeries(phenData, phenGroupName, nodeXPos, axisIdx, block
     }
   });
 
-  seriesPhenTrackList = [{
+  let medianSeries;
+  if (!withColor) {
+    const monoData = [];
+    const lineColors = [];
+
+    Object.keys(nodeXPos).forEach(node => {
+      if (node != "0+" && node != "Inf+") {
+        if (monoData.length > 0) {
+          monoData.push([null, null]);
+          lineColors.push('transparent');
+        }
+        const nodeColor = '#36648B';
+        for (let x = nodeXPos[node].xstart; x <= nodeXPos[node].xend; x += 0.5) {
+          monoData.push([x, phenData[node][5] === 0 ? null : phenData[node][2]]);
+          lineColors.push(nodeColor);
+        }
+      }
+    });
+
+    medianSeries = [{
+      type: 'line',
+      name: 'Median:',
+      xAxisIndex: axisIdx,
+      yAxisIndex: axisIdx,
+      data: monoData,
+      showSymbol: false,
+      large: true,
+      clip: true,
+      animation: false,
+      connectNulls: false,
+      lineStyle: {
+        color: '#36648B',
+        width: 2
+      },
+      tooltip: {
+        trigger: 'axis'
+      }
+    }];
+  } else {
+    medianSeries = [];
+    Object.keys(nodeXPos).forEach((node, idx) => {
+      if (node != "0+" && node != "Inf+") {
+        const nodeData = [];
+        for (let x = nodeXPos[node].xstart; x <= nodeXPos[node].xend; x += 0.5) {
+          nodeData.push([x, phenData[node][5] === 0 ? null : phenData[node][2]]);
+        }
+        medianSeries.push({
+          type: 'line',
+          name: 'Median:',
+          xAxisIndex: axisIdx,
+          yAxisIndex: axisIdx,
+          data: nodeData,
+          showSymbol: false,
+          large: true,
+          clip: true,
+          animation: false,
+          lineStyle: {
+            color: blockColors[blockNode.indexOf(node)],
+            width: 2
+          },
+          tooltip: {
+            trigger: 'axis',
+            formatter: function (params) {
+              return 'Node ' + node + '<br/>Median: ' + params[0].value[1];
+            }
+          },
+          legendHoverLink: false
+        });
+      }
+    });
+  }
+
+  const seriesPhenTrackList = [{
       name: 'Sample number',
       type: 'line',
       xAxisIndex: axisIdx,
       yAxisIndex: axisIdx,
-      data: phenTrackSta.map(function (item) {
-        return [item.x, item.n];
-      }),
+      data: phenTrackSta.map(item => [item.x, item.n]),
       lineStyle: {
         opacity: 0
       },
@@ -245,9 +315,7 @@ function getConPhenTrackSeries(phenData, phenGroupName, nodeXPos, axisIdx, block
       type: 'line',
       xAxisIndex: axisIdx,
       yAxisIndex: axisIdx,
-      data: phenTrackSta.map(function (item) {
-        return [item.x, item.missingn];
-      }),
+      data: phenTrackSta.map(item => [item.x, item.missingn]),
       lineStyle: {
         opacity: 0
       },
@@ -276,27 +344,11 @@ function getConPhenTrackSeries(phenData, phenGroupName, nodeXPos, axisIdx, block
       symbol: 'none',
       emphasis: {
         focus: 'none',
-        scale: false,
+        scale: false
       },
       silent: true
     },
-    {
-      type: 'line',
-      name: 'Median:',
-      xAxisIndex: axisIdx,
-      yAxisIndex: axisIdx,
-      data: phenTrackSta.map(item => [item.x, item.n === 0 ? null : item.value]),
-      showSymbol: false,
-      large: true,
-      clip: true,
-      animation: false,
-      lineStyle: {
-        color: '#36648B'
-      },
-      tooltip: {
-        trigger: 'axis'
-      },
-    },
+    ...medianSeries,
     {
       type: 'line',
       name: 'Lower quartile:',
@@ -320,11 +372,10 @@ function getConPhenTrackSeries(phenData, phenGroupName, nodeXPos, axisIdx, block
   ];
 
   return seriesPhenTrackList;
-
 }
 
 
-function getDisPhenTrackSeries(phenData, phenGroupName, nodeXPos, axisIdx, blockNode, blockColors, refAreaColor, refMarkedArea) {
+function getDisPhenTrackSeries(phenData, phenGroupName, nodeXPos, axisIdx, blockNode, blockColors, refAreaColor, refMarkedArea, withColor = false) {
 
   const phenTrackData = [];
   phenGroupName.forEach((pheno, phenIdx) => {
@@ -335,14 +386,14 @@ function getDisPhenTrackSeries(phenData, phenGroupName, nodeXPos, axisIdx, block
           name: node,
           value: [nodeXPos[node].xstart, nodeXPos[node].xend, phenData[node][phenIdx], ''],
           itemStyle: {
-            color: blockColors[blockNode.indexOf(node)]
+            color: withColor ? blockColors[blockNode.indexOf(node)] : 'gray'
           }
         });
       }
     });
   });
 
-  seriesPhenTrackList = phenTrackData.map((data, idx) => {
+  const seriesPhenTrackList = phenTrackData.map((data, idx) => {
     return {
       type: 'custom',
       renderItem: function (params, api) {
@@ -384,21 +435,19 @@ function getDisPhenTrackSeries(phenData, phenGroupName, nodeXPos, axisIdx, block
           disabled: true
         }
       },
-      large: true,
       tooltip: {
         trigger: "item",
         formatter: function (param) {
           return `
-				  <div style="font-weight:bold">Node ${param.name}</div>
-				  <div>Value: <b>${param.value[2]}</b></div>
-				`;
+           <div style="font-weight:bold">Node ${param.name}</div>
+           <div>Value: <b>${param.value[2]}</b></div>
+         `;
         }
       }
     }
   });
 
-  return (seriesPhenTrackList);
-
+  return seriesPhenTrackList;
 }
 
 
