@@ -145,7 +145,7 @@ function getGroupedEdge(graphData, sortedNodes) {
 }
 
 
-function mergeReverse(sortedNodes, groupedEdge, nodeSeq, nodeSample, nodeData) {
+function mergeReverse(sortedNodes, groupedEdge, nodeSeq, nodeSample, nodeData, nodeSampleN) {
   const toReplace = [];
   const toRemove = new Set();
   const phenoFlag = nodeData.every(a => a[3] !== undefined);
@@ -227,6 +227,11 @@ function mergeReverse(sortedNodes, groupedEdge, nodeSeq, nodeSample, nodeData) {
     if (toRemove.has(v)) rmIdx.push(i);
   });
   rmIdx.reverse().forEach(i => sortedNodes.splice(i, 1));
+
+  nodeSampleN.clear();
+  for (const [key, value] of nodeSample) {
+  	nodeSampleN.set(key, value === "" ? 0 : value.split(",").length);
+  }
 	
 }
 

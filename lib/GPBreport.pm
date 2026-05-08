@@ -208,11 +208,6 @@ $(document).ready(function () {
       "UTR": "#68A3DE"
     };
 
-
-    //const refNodeColors = ["#424242", "#757575"];
-    //const altNodePalette = ["#3BA272", "#FAC858", "#73C0DE", "#EE6666", "#91CC75", "#5470C6", "#EA7CCC", "#FC8452"];
-    //const refAreaColor = "#ebf0e4";
-    //const arrowColor = "#bababa";
     let refNodeColors, altNodePalette, refAreaColor, arrowColor;
     const axisPointerColor = "#e38e28";
     const bedColor = "gray";
@@ -242,7 +237,7 @@ $(document).ready(function () {
         sel.add(new Option(v, v));
       });
     } else {
-      document.getElementById("phenoPanel").style.display = "none";
+      //document.getElementById("phenoPanel").style.display = "none";
     }
 
     const graphStart = Number(graphData.ref.start) + 1;
@@ -255,7 +250,7 @@ $(document).ready(function () {
     const allNodes = new Set(allEdges.flatMap(edge => [edge[0], edge[1]]));
     const sortedNodes = sortNodes(allNodes, allEdges, refNodes);
     const groupedEdge = getGroupedEdge(graphData, sortedNodes);
-    mergeReverse(sortedNodes, groupedEdge, nodeSeq, nodeSample, nodeData);
+    mergeReverse(sortedNodes, groupedEdge, nodeSeq, nodeSample, nodeData, nodeSampleN);
 
     const nodeXPos = getNodeXPos(nodeSeq, sortedNodes);
     const xMin = 0.5;
@@ -276,28 +271,27 @@ $(document).ready(function () {
       strucYtext
     } = getStrucData(geneData, strucColors);
     const strucSplitedData = splitStruc(strucData, refMergedRange, graphStart);
-    //const seriesGeneStruc = getStrucSeries(strucSplitedData, refAreaColor, refMarkedArea);
     const seriesGeneStrand = getStrandSeries(strucSplitedData);
 
     const {
       bedSplitedData,
       bedYtext
     } = splitBed(bedData, graphStart, refMergedRange, bedColor);
-    //const seriesBed = getBedSeries(bedSplitedData, refAreaColor, refMarkedArea);
-
 
     let phenGroupName = "";
     let seriesPhenTrackList = [];
     let phenoYmax = yMax;
     let phenTrackMaxN = 0;
+    let blockNode = null;
 
     function refreshChart() {
       updateColorsFromPicker(); 
       const {
         seriesBlockList,
-        blockNode,
+        blockNode: bn,
         blockColors
       } = getBlockSeries(nodeXPos, nodeYRange, blockArrow, sortedNodes, nodeSampleN, arrowWidth, refNodes, refNodeColors, altNodePalette);
+      blockNode = bn;
       const seriesLineList = getLineSeries(lineData, arrowWidth, arrowColor);
 
       const {
