@@ -66,7 +66,7 @@ function getStrucData(geneData, strucColors) {
   let anchorLine = 0;
   let anchorPos = 0;
 
-  geneData.forEach(function (gene, index) {
+  (geneData || []).forEach(function (gene, index) {
     const geneStart = Number(gene.start);
     const geneEnd = Number(gene.end);
     let geneLineIndex;

@@ -10,8 +10,6 @@ sub get_interval {
 
         my ($geneid, $genelist, $region, $regionlist, $extend, $anno, $dir_name) = @_;
 
-        my $format = detect_anno_format($anno);
-
         if ($geneid || $genelist) {
                 my @genes;
                 if ($geneid) {
@@ -24,6 +22,7 @@ sub get_interval {
                 }
                 my %seen_gene;
                 @genes = grep { !$seen_gene{$_}++ } @genes;
+		my $format = detect_anno_format($anno);
                 my $interval_arr = extract_gene_annos($anno, \@genes, $dir_name, $format, $extend);
 		die "Error: No annotations found for the provided gene ID(s) in $anno.\n" unless @$interval_arr;
                 return $interval_arr;
@@ -50,7 +49,10 @@ sub get_interval {
                         close $fh;
                         die "Error: No valid regions found in $regionlist\n" unless @regions;
                 }
-                extract_region_annos($anno, \@regions, $dir_name, $format);
+		if(defined $anno){
+			my $format = detect_anno_format($anno);
+                	extract_region_annos($anno, \@regions, $dir_name, $format);
+		}
                 return \@regions;
         }
 

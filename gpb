@@ -12,27 +12,25 @@ use GPBpheno;
 use GPBbed;
 
 my $usage = "\nUsage:
-For variant data: gpb --variant <in.vcf> --ref-fa <ref.fa> --gene-anno <ref_gene.gff3/gtf> (--geneid <ID> | --geneid-list <list.file> | --region <chr:start-end> | --region-list <list.bed>) [OPTIONS]
-For pangenome graph: gpb --graph <graph.og> --ref-name <ref_path> --gene-anno <ref_gene.gff3/gtf> (--geneid <ID> | --geneid-list <list.file> | --region <chr:start-end> | --region-list <list.bed>) [OPTIONS]
+For variant data: gpb --variant <in.vcf> --ref-fa <ref.fa> (--geneid <ID> | --geneid-list <list.file> | --region <chr:start-end> | --region-list <list.bed>) [OPTIONS]
+For pangenome graph: gpb --graph <graph.og> --ref-name <ref_path> (--geneid <ID> | --geneid-list <list.file> | --region <chr:start-end> | --region-list <list.bed>) [OPTIONS]
 
 REQUIRED ARGUMENTS
   1. Input mode (choose one group):
-    -v, --variant	<file>		Variants in VCF format (.vcf). (requires '--ref-fa')
-    -r, --ref-fa	<file>		Reference genome in FASTA format (.fa). (requires '--variant')
+    -v, --variant	<file>		Variants in VCF format (.vcf). (requires '-r/--ref-fa')
+    -r, --ref-fa	<file>		Reference genome in FASTA format (.fa). (requires '-v/--variant')
 
-    -g, --graph		<file>		Variation graph in ODGI format (.og). (requires '--ref-name')
-    -R, --ref-name	<string>	Name of the reference path in the graph. (requires '--graph')
+    -g, --graph		<file>		Variation graph in ODGI format (.og). (requires '-R/--ref-name')
+    -R, --ref-name	<string>	Name of the reference path in the graph. (requires '-g/--graph')
 
-  2. Reference gene annotation:
-    -a, --gene-anno	<file>		Gene annotation file in GFF3/GTF format for the reference genome.	
-
-  3. Analysis range (choose one)
-    --geneid		<string>	Single gene ID to analyze.
-    --geneid-list	<file>		File containing list of gene IDs (one per line).
+  2. Analysis range (choose one)
+    --geneid		<string>	Single gene ID to analyze. (requires '-a/--gene-anno')
+    --geneid-list	<file>		File containing list of gene IDs (one per line). (requires '-a/--gene-anno')
     --region		<string>	Single genomic region in 'chr:start-end' format (e.g. chr1:1000-2000).
     --region-list	<file>		BED file with genomic regions (chrom<tab>start<tab>end, 0-based).
 
-OPTIONAL ARGUMENTS
+ RECOMMENDED ARGUMENTS (DATA TRACKS)
+    -a, --gene-anno     <file>          Gene annotation file in GFF3/GTF format for the reference genome.
     -x, --extra-anno	<file>		Additional reference-genome annotations besides genes in BED format
     					(e.g. repeats, domains). 
     -p, --pheno		<file>		Tab-delimited phenotype matrix: first column contains path identifiers 
@@ -41,6 +39,7 @@ OPTIONAL ARGUMENTS
 					Missing values in the file are indicated by '-', 'NA', 'NaN', 'null', 
 					'None',	'NULL', 'undefined', 'unknown' or 'Unknown'.					
 
+OPTIONAL ARGUMENTS
     -o, --out		<string>	Output directory name.
 
     -e, --extend	<n>		Extend analysis region by N bp upstream and downstream of genes.
@@ -119,7 +118,6 @@ if (defined $geneid || defined $genelist) {
 }
 
 my $dir_name = GPBarg::mk_outdir($out);
-my $anno_dir = "gene_anno";
 my $graph_dir = "graph_gfa";
 
 my $ref_path_name;
@@ -127,9 +125,16 @@ if ($has_graph_mode) {
 	$ref_path_name = GPBarg::get_ref_path_name($raw_graph, $refname);	
 }
 
-printLog("Extracting gene annotation information...");
-mkdir "${dir_name}/$anno_dir" or die "Cannot create ${dir_name}/$anno_dir: $!\n";
-my $interval_arr = GPBanno::get_interval($geneid, $genelist, $region, $regionlist, $extend, $anno, "$dir_name/$anno_dir");
+my $interval_arr;
+my $anno_dir;
+if (defined $anno){
+	printLog("Extracting gene annotation information...");
+	$anno_dir = "gene_anno";
+	mkdir "${dir_name}/$anno_dir" or die "Cannot create ${dir_name}/$anno_dir: $!\n";
+	$interval_arr = GPBanno::get_interval($geneid, $genelist, $region, $regionlist, $extend, $anno, "$dir_name/$anno_dir");
+} else {
+	$interval_arr = GPBanno::get_interval($geneid, $genelist, $region, $regionlist, $extend, $anno, "");
+}
 
 if ($has_vcf_mode) {
 	printLog("Constructing pangenome graph with VG...");
@@ -167,9 +172,15 @@ foreach my $interval (@$interval_arr) {
 		next;
 	}
 
-	printLog("- Adding gene annotation track...");
-	my $format = GPBanno::detect_anno_format($anno);
-        my $all_gene_pos = GPBanno::get_gene_pos("$dir_name/$anno_dir/$name.$format");
+	my $all_gene_pos;
+	if(defined $anno){
+		printLog("- Adding gene annotation track...");
+		my $format = GPBanno::detect_anno_format($anno);
+        	$all_gene_pos = GPBanno::get_gene_pos("$dir_name/$anno_dir/$name.$format");
+	} else {
+		$all_gene_pos = '';
+	}
+
         my $bed_data;
         if (defined $bed){
                 printLog("- Adding additional annotation track...");

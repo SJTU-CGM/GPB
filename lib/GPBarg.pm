@@ -23,16 +23,16 @@ sub check_input {
         	die "Error: --graph is required when using --ref-name\n" if $refname && !$graph;
 	}
 
-	if(!defined $anno){
-        	die "Error: Please provide the GFF/GTF file with gene annotation\n";
+	if((defined $geneid || defined $genelist) && !defined $anno){
+		die "Error: Please provide the GFF/GTF file with gene annotation\n";
 	}
 
 	my @range_options = ($geneid, $genelist, $region, $regionlist);
 	my $range_count = scalar grep { defined $_ } @range_options;
 	if ($range_count == 0){
-        	die "Error: Please specify one analysis range parameter: --geneid, --geneid-list, --region, or --region-list\n";
+		die "Error: Please specify one analysis range parameter: --geneid, --geneid-list, --region, or --region-list\n";
 	}elsif ($range_count > 1) {
-        	die "Error: Can only specify one analysis range parameter: --geneid, --geneid-list, --region, or --region-list\n";
+		die "Error: Can only specify one analysis range parameter: --geneid, --geneid-list, --region, or --region-list\n";
 	}
 
 	if (defined $extend && !$geneid && !$genelist) {

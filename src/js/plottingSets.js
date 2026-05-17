@@ -917,13 +917,13 @@ function getBedSeries(bedSplitedData, refAreaColor, refMarkedArea) {
 }
 
 
-function generateGridConfig(phenTrackCount) {
+function generateGridConfig(phenTrackCount, showGene, showBed) {
 
   const sliderHeight = 80;
   const barHeight = 80;
   const blockHeight = 200;
-  const geneHeight = 200;
-  const bedHeight = 30;
+  const geneHeight = showGene === false ? 0 : 200; 
+  const bedHeight = showBed === false ? 0 : 30;
   const phenHeight = 50;
   const gap = 10;
 
@@ -1071,7 +1071,7 @@ function generateXAxisConfig(phenTrackCount, axisIdx, xMin, xMax, newXLabel) {
 }
 
 
-function generateYAxisConfig(phenTrackCount, axisIdx, yMax, strucYtext, bedYtext, phenGroupName, phenoYmax) {
+function generateYAxisConfig(phenTrackCount, axisIdx, yMax, strucYtext, bedYtext, phenGroupName, phenoYmax, showGene, showBed) {
 
   const yAxis = [{
       gridIndex: 0,
@@ -1109,6 +1109,7 @@ function generateYAxisConfig(phenTrackCount, axisIdx, yMax, strucYtext, bedYtext
     {
       gridIndex: 2,
       data: strucYtext,
+      show: showGene,
       inverse: true,
       type: 'category',
       name: "Gene annotation",
@@ -1136,6 +1137,7 @@ function generateYAxisConfig(phenTrackCount, axisIdx, yMax, strucYtext, bedYtext
     {
       gridIndex: 3,
       data: bedYtext,
+      show: showBed,
       inverse: true,
       type: 'category',
       name: "Additional annotation",
@@ -1188,12 +1190,12 @@ function generateYAxisConfig(phenTrackCount, axisIdx, yMax, strucYtext, bedYtext
 }
 
 
-function getChartOption(axisPointerColor, xMin, xMax, newXLabel, yMax, strucYtext, bedYtext, phenTrackMaxN, phenGroupName, phenoYmax, seriesBlockList, seriesGraphNodeList, seriesGraphEdgeList, seriesLineList, seriesGeneStruc, seriesGeneStrand, seriesBed, seriesPhenTrackList) {
+function getChartOption(axisPointerColor, xMin, xMax, newXLabel, yMax, strucYtext, bedYtext, phenTrackMaxN, phenGroupName, phenoYmax, seriesBlockList, seriesGraphNodeList, seriesGraphEdgeList, seriesLineList, seriesGeneStruc, seriesGeneStrand, seriesBed, seriesPhenTrackList, showGene, showBed) {
 
-  const gridHeight = generateGridConfig(phenTrackMaxN);
+  const gridHeight = generateGridConfig(phenTrackMaxN, showGene, showBed);
   const totalHeight = gridHeight.totalHeight;
   const xAxisConfig = generateXAxisConfig(phenTrackMaxN, 4, xMin, xMax, newXLabel);
-  const yAxisConfig = generateYAxisConfig(phenTrackMaxN, 4, yMax, strucYtext, bedYtext, phenGroupName, phenoYmax);
+  const yAxisConfig = generateYAxisConfig(phenTrackMaxN, 4, yMax, strucYtext, bedYtext, phenGroupName, phenoYmax, showGene, showBed);
   const option = {
     grid: gridHeight.grid,
     tooltip: {

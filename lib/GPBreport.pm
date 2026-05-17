@@ -81,6 +81,8 @@ sub export_figure {
                 phenoMeta => $pheno_meta
         );
 	my $out_json = encode_json(\%out);
+	my $showBed = ($bed_data eq '') ? 'false' : 'true';
+	my $showGene = ($all_gene_pos eq '') ? 'false' : 'true';
 
 	open my $fh_fig, '>', "$dir/$pfx.html" or die "Error: Can't write file '$dir/$pfx.html': $!\n";
 
@@ -160,24 +162,21 @@ sub export_figure {
         </div>
       </div>
     </div>
-  </div>
+  <br>
   <div id="phenoPanel" class="mt-4">
-    <div class="row align-items-center">
-      <div class="col-1  d-flex align-items-center gap-2">
+    <div class="d-flex align-items-center gap-3 flex-wrap">
+      <div id="phenoControls" class="d-flex align-items-center gap-3">
         <label class="label-inline">Phenotype:</label>
-      </div>
-      <div class="col-6 d-flex align-items-center gap-5">
         <select id="phenSelected" class="form-select form-select-sm w-auto">
         </select>
-	<div class="d-flex align-items-center gap-2">
+        <div class="d-flex align-items-center gap-2">
           <input class="form-check-input" type="checkbox" id="monoCheck" style="margin-top: 0;">
           <label class="form-check-label text-nowrap mb-0" for="monoCheck">Use node colors</label>
         </div>
-        <button id="refreshBtn" class="btn btn-primary btn-sm"> <i class="bi bi-arrow-clockwise" id="refreshIcon"></i> Refresh </button>
       </div>
+      <button id="refreshBtn" class="btn btn-primary btn-sm"> <i class="bi bi-arrow-clockwise" id="refreshIcon"></i> Refresh </button>
     </div>
   </div>
-  <br>
   <div class="row">
     <div id="main" style="width:100%;height:800px"></div>
   </div>
@@ -241,7 +240,7 @@ $(document).ready(function () {
         sel.add(new Option(v, v));
       });
     } else {
-      //document.getElementById("phenoPanel").style.display = "none";
+      document.getElementById("phenoControls").style.setProperty("display", "none", "important");
     }
 
     const graphStart = Number(graphData.ref.start);
@@ -339,7 +338,7 @@ $(document).ready(function () {
       const {
         option,
         totalHeight
-      } = getChartOption(axisPointerColor, xMin, xMax, newXLabel, yMax, strucYtext, bedYtext, phenTrackMaxN, phenGroupName, phenoYmax, seriesBlockList, seriesGraphNodeList, seriesGraphEdgeList, seriesLineList, seriesGeneStruc, seriesGeneStrand, seriesBed, seriesPhenTrackList);
+      } = getChartOption(axisPointerColor, xMin, xMax, newXLabel, yMax, strucYtext, bedYtext, phenTrackMaxN, phenGroupName, phenoYmax, seriesBlockList, seriesGraphNodeList, seriesGraphEdgeList, seriesLineList, seriesGeneStruc, seriesGeneStrand, seriesBed, seriesPhenTrackList, '.$showGene.', '.$showBed.');
 
       const dom = document.getElementById("main");
       dom.style.height = totalHeight + "px";
