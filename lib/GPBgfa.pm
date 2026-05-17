@@ -25,7 +25,7 @@ sub parse_graph_gfa {
                 my $class = $arr[0];
                 if($class eq "S"){
 			push(@nodes, [$arr[1]."+", $arr[2]]);
-                }elsif($class eq "P" && ($arr[1] =~ /chr/ || $arr[1] =~ /Chr/)){
+                }elsif($class eq "P" && !($arr[1] =~ /_MINIGRAPH_/)){
                         my @cur_nodes = split(/,/, $arr[2]);
                         unshift(@cur_nodes, "0+");
 			push(@cur_nodes, "Inf+");
@@ -42,7 +42,7 @@ sub parse_graph_gfa {
 
                         }
                         foreach my $node (@cur_nodes){
-                                if ($arr[1] =~ /^(.*?)(?=\.[cC]hr)/) {
+                                if ($arr[1] =~ /^([^#]+)#+/ || $arr[1] =~ /^(.*?)(?=\.[cC]hr)/) {
                                         if(exists $node_sample{$node}){
                                                 $node_sample{$node} .= ",$1";
                                         }else{
@@ -50,9 +50,9 @@ sub parse_graph_gfa {
                                         }
                                 }
                         }
-                        if($arr[1] =~ /\Q$refname\E\.(\w+):(\d+)-(\d+)/){
+                        if($arr[1] =~ /(\Q$refname\E\w*):(\d+)-(\d+)/){
                                  $ref_info{chr} = $1;
-                                 $ref_info{start} = $2;
+                                 $ref_info{start} = $2 + 1;
                                  $ref_info{end} = $3;
                                  $ref_info{nodes} = $arr[2];
                         }
@@ -78,7 +78,7 @@ sub parse_graph_gfa {
 
 	my @node_add_sample;
         foreach my $node (@nodes){
-		push(@node_add_sample, [@$node[0], @$node[1], $node_sample{@$node[0]}]);
+		push(@node_add_sample, [@$node[0], @$node[1], $node_sample{@$node[0]} // '']);
         }
 
 	return (\@node_add_sample, \@edge_out, \%ref_info);
@@ -135,7 +135,7 @@ sub parse_variant_gfa {
                         my @cur_node_arr = split(/,/, $cur_nodes);
                         if($cur_path =~ /^([Cc]hr\w+):(\d+)-(\d+)$/){
                                 $ref_info{chr} = $1;
-                                $ref_info{start} = $2;
+                                $ref_info{start} = $2 + 1;
                                 $ref_info{end} = $3;
                                 $ref_info{nodes} = $cur_nodes;
                                 @ref_nodes = @cur_node_arr;

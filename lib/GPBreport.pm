@@ -244,7 +244,7 @@ $(document).ready(function () {
       //document.getElementById("phenoPanel").style.display = "none";
     }
 
-    const graphStart = Number(graphData.ref.start) + 1;
+    const graphStart = Number(graphData.ref.start);
     const nodeSeq = getNodeSeq(nodeData);
     const nodeSample = new Map(nodeData.map(row => [row[0], row[2]]));
     const nodeSampleN = statNodeSampleN(graphData.edge);

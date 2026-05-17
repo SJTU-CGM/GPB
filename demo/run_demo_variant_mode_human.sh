@@ -24,7 +24,7 @@ gpb --variant human_demo.vcf.gz --ref-fa hg38.fa --gene-anno human_gene_anno.gff
 gpb --variant human_demo.vcf.gz --ref-fa hg38.fa --gene-anno human_gene_anno.gff3 --extra-anno human_repeat_anno.bed --region chr6:42915066-42940195 --out demores_human_region --pheno human_demo_pheno.txt
 
 ## Visualizing multiple genomic regions
-printf '%s\n' chr6:2884916-2912669 chr6:18385698-18470573  chr6:73393729-73453504 > human_demo_region.bed
+printf 'chr6\t2884916\t2912669\nchr6\t18385698\t18470573\nchr6\t73393729\t73453504\n' > human_demo_region.bed
 gpb --variant human_demo.vcf.gz --ref-fa hg38.fa --gene-anno human_gene_anno.gff3  --extra-anno human_repeat_anno.bed --region-list human_demo_region.bed --out demores_human_regionlist --pheno human_demo_pheno.txt
 
 

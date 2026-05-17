@@ -10,7 +10,7 @@ use GPBvcf;
 
 sub build_graph {
 	
-	my ($vcf, $reffa, $interval_arr, $dir_name, $thread) = @_;
+	my ($vcf, $reffa, $interval_arr, $dir_name, $pan_name, $thread) = @_;
 	my @interval_arr = @$interval_arr;
 
 	my %seen;
@@ -110,7 +110,7 @@ sub build_graph {
 
 	system("vg construct -A -r $dir_name/seq.fa -v ${dir_name}/pan.vcf --threads $thread > ${dir_name}/pan.vg") == 65280 or die "Error: Failed to construct the sequence graph using VG.\n";
 	system("vg view ${dir_name}/pan.vg --threads $thread > ${dir_name}/pan.gfa") == 65280 or die "Error: Failed to output the GFA file using VG.\n";
-        system("odgi build -g ${dir_name}/pan.gfa -o ${dir_name}/pan.og -t $thread") == 0 or die "Error: Failed to construct the sequence graph using ODGI.\n";
+        system("odgi build -g ${dir_name}/pan.gfa -o ${dir_name}/$pan_name -t $thread") == 0 or die "Error: Failed to construct the sequence graph using ODGI.\n";
 
 	unlink "$dir_name/overlap.bed" if -e "$dir_name/overlap.bed";
 	unlink "$dir_name/interval.bed" if -e "$dir_name/interval.bed";
@@ -120,6 +120,14 @@ sub build_graph {
 	unlink "$dir_name/pan.vg" if -e "$dir_name/pan.vg";
 	unlink "$dir_name/pan.gfa" if -e "$dir_name/pan.gfa";	
 }
+
+
+sub sort_graph {
+	my ($rawgraph, $dir_name, $pan_name, $threads) = @_;
+	system("odgi sort -i $rawgraph -o ${dir_name}/$pan_name -O --threads $threads");
+	return;
+}
+
 
 
 sub extract_subgraph {

@@ -258,6 +258,29 @@ sub validate_phenotype_file {
 }
 
 
+sub get_ref_path_name {
+	my ($og_file, $refname) = @_;
+	
+	my $cmd = "odgi paths -i '$og_file' -L";
+	my $output = `$cmd`;
+
+	if ($? != 0) {
+		die "Error: Failed to execute 'odgi paths -i $og_file -L'\n";
+	}
+
+	my @all_paths = split /\n/, $output;
+	my @matched = grep { index($_, $refname) != -1 } @all_paths;
+	unless (@matched) {
+		die "Error: No path found matching refname '$refname' in file '$og_file'\n";
+	}
+
+	if (@matched > 1) {
+		die "Error: Multiple paths found matching refname '$refname' in file '$og_file': " . join(", ", @matched) . "\n";
+	}
+
+	return $matched[0];
+}
+
 
 1;
 
