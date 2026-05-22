@@ -55,7 +55,14 @@ sub parse_graph_gfa {
                                  $ref_info{start} = $2 + 1;
                                  $ref_info{end} = $3;
                                  $ref_info{nodes} = $arr[2];
-                        }
+                        } elsif ($arr[1] eq $refname) {
+				if ($arr[1] =~ /(\w+):(\d+)-(\d+)/) {
+					$ref_info{chr} = $1;
+					$ref_info{start} = $2 + 1;
+					$ref_info{end} = $3;
+					$ref_info{nodes} = $arr[2];
+				}
+			}
                 }
         }
 

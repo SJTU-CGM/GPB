@@ -29,11 +29,11 @@ sub check_input {
 
 	my @range_options = ($geneid, $genelist, $region, $regionlist);
 	my $range_count = scalar grep { defined $_ } @range_options;
-	if ($range_count == 0){
-		die "Error: Please specify one analysis range parameter: --geneid, --geneid-list, --region, or --region-list\n";
-	}elsif ($range_count > 1) {
-		die "Error: Can only specify one analysis range parameter: --geneid, --geneid-list, --region, or --region-list\n";
-	}
+	#if ($range_count == 0){
+	#	die "Error: Please specify one analysis range parameter: --geneid, --geneid-list, --region, or --region-list\n";
+	#}elsif ($range_count > 1) {
+	#	die "Error: Can only specify one analysis range parameter: --geneid, --geneid-list, --region, or --region-list\n";
+	#}
 
 	if (defined $extend && !$geneid && !$genelist) {
     		warn "Warning: --extend parameter can only be used with --geneid or --geneid-list\n";
@@ -276,6 +276,10 @@ sub get_ref_path_name {
 
 	if (@matched > 1) {
 		die "Error: Multiple paths found matching refname '$refname' in file '$og_file': " . join(", ", @matched) . "\n";
+	}
+
+	if (@all_paths <= 1) {
+		die "Error: Only the reference genome path found. Please provide a pangenome graph containing multiple genome paths.\n"; 
 	}
 
 	return $matched[0];

@@ -8,7 +8,7 @@ use List::Util qw(max);
 
 sub get_interval {
 
-        my ($geneid, $genelist, $region, $regionlist, $extend, $anno, $dir_name) = @_;
+        my ($geneid, $genelist, $region, $regionlist, $extend, $anno, $dir_name, $ref_path_name) = @_;
 
         if ($geneid || $genelist) {
                 my @genes;
@@ -26,7 +26,7 @@ sub get_interval {
                 my $interval_arr = extract_gene_annos($anno, \@genes, $dir_name, $format, $extend);
 		die "Error: No annotations found for the provided gene ID(s) in $anno.\n" unless @$interval_arr;
                 return $interval_arr;
-        } else {
+        } elsif ($region || $regionlist) {
                 my @regions;
                 if ($region) {
                         my ($c, $s, $e) = parse_region_string($region);
@@ -54,8 +54,15 @@ sub get_interval {
                 	extract_region_annos($anno, \@regions, $dir_name, $format);
 		}
                 return \@regions;
-        }
-
+        } elsif (defined $ref_path_name) {
+		my ($c, $s, $e) = parse_region_string($ref_path_name);
+		my @regions = (["${c}_${s}-${e}", $c, $s, $e]);
+		if(defined $anno){
+                        my $format = detect_anno_format($anno);
+                        extract_region_annos($anno, \@regions, $dir_name, $format);
+                }
+		return \@regions;		
+	}
 }
 
 
