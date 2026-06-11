@@ -90,7 +90,7 @@ sub export_figure {
 <html>
 <head>
 <meta charset="utf-8">
-<title>GPB report</title>
+<title>fGPB report</title>
 <link rel="stylesheet" type="text/css" href="./css/bootstrap_5.1.1_css_bootstrap.min.css">
 <link rel="stylesheet" type="text/css" href="./css/colorPicker.css">
 <script type="text/javascript" charset="utf8" src="./js/jquery-3.5.1.js"></script> 
@@ -162,7 +162,7 @@ sub export_figure {
         </div>
       </div>
     </div>
-  <br>
+  </div>
   <div id="phenoPanel" class="mt-4">
     <div class="d-flex align-items-center gap-3 flex-wrap">
       <div id="phenoControls" class="d-flex align-items-center gap-3">
@@ -177,6 +177,7 @@ sub export_figure {
       <button id="refreshBtn" class="btn btn-primary btn-sm"> <i class="bi bi-arrow-clockwise" id="refreshIcon"></i> Refresh </button>
     </div>
   </div>
+  <br>
   <div class="row">
     <div id="main" style="width:100%;height:800px"></div>
   </div>

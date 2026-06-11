@@ -547,6 +547,7 @@ sub get_gene_pos {
 					$gene_pos{'start'} = $start;
 					$gene_pos{'end'} = $end;
 					$gene_pos{'strand'} = $strand;	
+					$gene_pos{'gene_name'} = $attr{'gene_name'} // '';
 				}elsif($class eq "mRNA" || $class eq "transcript"){
 					push(@trans_arr, $attr{"ID"});
 					push(@{$gene_pos{'ele'}}, ["transcript", $start, $end, $#trans_arr + 1, $attr{"ID"}]);
@@ -576,6 +577,7 @@ sub get_gene_pos {
 					$gene_pos{'start'} = $start;
 					$gene_pos{'end'} = $end;
 					$gene_pos{'strand'}  = $strand;
+					$gene_pos{'gene_name'} = $attr{'gene_name'} // '';
 				} elsif ($class eq "mRNA" || $class eq "transcript") {
 					my $tx_id = $attr{"transcript_id"};
 					next unless defined $tx_id;

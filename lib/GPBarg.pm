@@ -29,11 +29,11 @@ sub check_input {
 
 	my @range_options = ($geneid, $genelist, $region, $regionlist);
 	my $range_count = scalar grep { defined $_ } @range_options;
-	#if ($range_count == 0){
-	#	die "Error: Please specify one analysis range parameter: --geneid, --geneid-list, --region, or --region-list\n";
-	#}elsif ($range_count > 1) {
-	#	die "Error: Can only specify one analysis range parameter: --geneid, --geneid-list, --region, or --region-list\n";
-	#}
+	if ($range_count == 0){
+		die "Error: Please specify one analysis range parameter: --geneid, --geneid-list, --region, or --region-list\n";
+	}elsif ($range_count > 1) {
+		die "Error: Can only specify one analysis range parameter: --geneid, --geneid-list, --region, or --region-list\n";
+	}
 
 	if (defined $extend && !$geneid && !$genelist) {
     		warn "Warning: --extend parameter can only be used with --geneid or --geneid-list\n";
@@ -87,7 +87,7 @@ sub mk_outdir {
         	$dir_name = $out;
 	} else {
         	my ($sec, $min, $hour, $mday, $mon, $year) = localtime;
-        	$dir_name = sprintf("gpb_res_%02d-%02d_%02d%02d%02d", $mon+1, $mday, $hour, $min, $sec);
+        	$dir_name = sprintf("fgpb_res_%02d-%02d_%02d%02d%02d", $mon+1, $mday, $hour, $min, $sec);
 	}
 	die "Error: Output directory \"$dir_name\" already exists. To avoid overwriting of existing files, we kindly request that the output directory should not exist.\n" if -e $dir_name;
 
@@ -259,9 +259,9 @@ sub validate_phenotype_file {
 
 
 sub get_ref_path_name {
-	my ($og_file, $refname) = @_;
+	my ($og_file, $refname, $thread) = @_;
 	
-	my $cmd = "odgi paths -i '$og_file' -L";
+	my $cmd = "odgi paths -i '$og_file' -L --threads $thread";
 	my $output = `$cmd`;
 
 	if ($? != 0) {

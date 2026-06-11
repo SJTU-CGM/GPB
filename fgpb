@@ -12,16 +12,13 @@ use GPBpheno;
 use GPBbed;
 
 my $usage = "\nUsage:
-Three running modes are supported:
+Two running modes are supported:
 
-Mode 1: Visualize a pre-extracted subgraph
-    gpb --graph <subgraph.og> --ref-name <ref_path> [OPTIONS]
+Mode 1: Extract gene(s)/region(s) from a pangenome graph, and visualize
+    fgpb --graph <graph.og> --ref-name <ref_path> (--geneid <ID> | --geneid-list <list.file> | --region <chr:start-end> | --region-list <list.bed>) [OPTIONS]
 
-Mode 2: Extract gene(s)/region(s) from a pangenome graph, and visualize
-    gpb --graph <graph.og> --ref-name <ref_path> (--geneid <ID> | --geneid-list <list.file> | --region <chr:start-end> | --region-list <list.bed>) [OPTIONS]
-
-Mode 3: Build graph from variant data, extract gene(s)/region(s), and visualize
-    gpb --variant <in.vcf> --ref-fa <ref.fa> (--geneid <ID> | --geneid-list <list.file> | --region <chr:start-end> | --region-list <list.bed>) [OPTIONS]
+Mode 2: Build graph from variant data, extract gene(s)/region(s), and visualize
+    fgpb --variant <in.vcf> --ref-fa <ref.fa> (--geneid <ID> | --geneid-list <list.file> | --region <chr:start-end> | --region-list <list.bed>) [OPTIONS]
 
 REQUIRED ARGUMENTS
   Input mode (choose one group):
@@ -31,7 +28,7 @@ REQUIRED ARGUMENTS
     -g, --graph		<file>		Variation graph in ODGI format (.og). (requires '-R/--ref-name')
     -R, --ref-name	<string>	Name of the reference path in the graph. (requires '-g/--graph')
 
-  Target gene(s)/region(s) (required for Mode 2 & 3; choose one):
+  Target gene(s)/region(s):
     --geneid		<string>	Single gene ID to analyze. (requires '-a/--gene-anno')
     --geneid-list	<file>		File containing list of gene IDs (one per line). (requires '-a/--gene-anno')
     --region		<string>	Single genomic region in 'chr:start-end' format (e.g. chr1:1000-2000).
@@ -105,7 +102,7 @@ GetOptions(
    't|threads=i'	=> \$threads,
    'h|help!'		=> \$help
 
-);
+) or die "\n";
 
 die $usage if $help;
 
@@ -130,7 +127,7 @@ my $graph_dir = "graph_gfa";
 
 my $ref_path_name;
 if ($has_graph_mode) {
-	$ref_path_name = GPBarg::get_ref_path_name($raw_graph, $refname);
+	$ref_path_name = GPBarg::get_ref_path_name($raw_graph, $refname, $threads);
 }
 
 my $interval_arr;
