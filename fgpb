@@ -112,7 +112,6 @@ my $has_graph_mode = ($raw_graph || $refname);
 GPBarg::check_input($vcf, $reffa, $raw_graph, $refname, $anno, $geneid, $genelist, $region, $regionlist, $extend, $bed, $pheno, $maxe, $maxd, $threads);
 
 if($has_vcf_mode){
-	die "Please install 'vg' first\n" if(system("command -v vg > /dev/null 2>&1") != 0);
 	die "Please install 'bcftools' first\n" if(system("command -v bcftools > /dev/null 2>&1") != 0);
 	die "Please install 'samtools' first\n" if(system("command -v samtools > /dev/null 2>&1") != 0);
 }

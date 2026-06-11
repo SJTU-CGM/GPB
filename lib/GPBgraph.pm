@@ -5,6 +5,7 @@ package GPBgraph;
 use strict;
 use warnings;
 use File::Temp qw(tempfile);
+use FindBin qw($RealBin);
 use GPBvcf;
 
 
@@ -108,8 +109,21 @@ sub build_graph {
 	my $vcf_count = `grep -v "#" "${dir_name}/pan.vcf" | wc -l`;
         die "Error: No variants were found in the region associated with the target gene.\n" if($vcf_count < 1);
 
-	system("vg construct -A -r $dir_name/seq.fa -v ${dir_name}/pan.vcf --threads $thread > ${dir_name}/pan.vg") == 65280 or die "Error: Failed to construct the sequence graph using VG.\n";
-	system("vg view ${dir_name}/pan.vg --threads $thread > ${dir_name}/pan.gfa") == 65280 or die "Error: Failed to output the GFA file using VG.\n";
+	my $vg_exe = "$RealBin/ext/bin/vg";
+	unless (-f $vg_exe && -x $vg_exe) {
+		die "Error: vg not found or no execute permission -> $vg_exe\n";
+	}
+
+	system("$vg_exe construct -A -r $dir_name/seq.fa -v ${dir_name}/pan.vcf --threads $thread > ${dir_name}/pan.vg");
+	my $exit1 = $? >> 8;
+	if ($exit1 != 0 && (!-f "$dir_name/pan.vg" || -z "$dir_name/pan.vg")) {
+		die "Error: Failed to construct the sequence graph using VG (exit $exit1).\n";
+	}
+	system("$vg_exe view ${dir_name}/pan.vg --threads $thread > ${dir_name}/pan.gfa");
+	my $exit2 = $? >> 8;
+	if ($exit2 != 0 && (!-f "$dir_name/pan.gfa" || -z "$dir_name/pan.gfa")) {
+		die "Error: Failed to output the GFA file using VG (exit $exit2).\n";
+	}
         system("odgi build -g ${dir_name}/pan.gfa -o ${dir_name}/$pan_name -t $thread") == 0 or die "Error: Failed to construct the sequence graph using ODGI.\n";
 
 	unlink "$dir_name/overlap.bed" if -e "$dir_name/overlap.bed";

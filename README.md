@@ -21,11 +21,11 @@ fGPB is a visualization tool that employs a novel flow-based layout to clearly r
 ## Requirements
 ### Basic (Both graph mode and VCF mode):
 * <b>Perl</b>
-* <b>ODGI (v0.9 or later)</b> (https://github.com/pangenome/odgi)<br>
+* <b>ODGI</b> (v0.9 or later, https://github.com/pangenome/odgi)<br>
 ### VCF mode:
-* <b>VG (v1.60 or later)</b> (https://github.com/vgteam/vg)<br>
-* <b>Samtools (v1.16 or later)</b> (https://github.com/samtools/samtools)<br>
-* <b>Bcftools (v1.16 or later)</b> (https://github.com/samtools/bcftools)<br>
+* <b>VG</b> (v1.60 or later, https://github.com/vgteam/vg) (bundled in `ext/bin/`)<br>
+* <b>Samtools</b> (v1.16 or later, https://github.com/samtools/samtools)<br>
+* <b>Bcftools</b> (v1.16 or later, https://github.com/samtools/bcftools)<br>
 
 ## Installation procedures
 1. You can download the fGPB from Github:
