@@ -18,38 +18,50 @@ fGPB is a visualization tool that employs a novel flow-based layout to clearly r
 * **4. Interactive Web Interface**  
   Provides zooming, panning, and data inspection capabilities for interactive exploration.
 
-## Requirements
-### Basic (Both graph mode and Variant mode):
-* <b>Perl</b>
-* <b>ODGI</b> (v0.9 or later, https://github.com/pangenome/odgi)<br>
-### Variant mode:
-* <b>VG</b> (v1.60 or later, https://github.com/vgteam/vg) (bundled in `ext/bin/`)<br>
-* <b>Samtools</b> (v1.16 or later, https://github.com/samtools/samtools)<br>
-* <b>Bcftools</b> (v1.16 or later, https://github.com/samtools/bcftools)<br>
+## Installation
 
-## Installation procedures
-1. You can download the fGPB from Github:
+### Direct Installation
+
+#### Requirements
+Basic (Both graph mode and Variant mode):
+- Perl
+- ODGI (v0.9 or later, https://github.com/pangenome/odgi)
+
+Variant mode:
+- VG (bundled in `ext/bin/`)
+- Samtools (v1.16 or later, https://github.com/samtools/samtools)
+- Bcftools (v1.16 or later, https://github.com/samtools/bcftools)
+
 ```
+# Download the fGPB from Github
 git clone https://github.com/SJTU-CGM/fGPB.git
-```
- Alternatively, you could also obtain the tool on the [fGPB](https://cgm.sjtu.edu.cn/fGPB/install.html) website and uncompress the fGPB toolbox package:
-```
-tar zxvf fGPB-v**.tar.gz
-```
 
-2. You need to add `fgpb` to `PATH` and add `lib/` to `PERL5LIB`
-```
+# Add `fgpb` to `PATH` and add `lib/` to `PERL5LIB`
 export PATH="/path/to/fGPB:$PATH"
 export PERL5LIB="/path/to/fGPB/lib${PERL5LIB:+:$PERL5LIB}"
+
+fgpb --help
 ```
 
-3. Finally, you can test if the fGPB is installed successfully by:
+### Conda
 ```
-fgpb
+# Download the fGPB from Github
+git clone https://github.com/SJTU-CGM/fGPB.git
+
+# Create conda
+conda env create -f fgpb.yml
+
+# Configure PATH and PERL5LIB 
+bash scripts/setup_env.sh
+
+# Activate the fGPB
+conda activate fGPB
+
+fgpb --help
 ```
 
-If you could see the following content, congratulations! The fGPB is successfully installed. If not, see if all the requirements are satisfied, or you may contact the authors for help.
-
+## Usage 
+A listing of all parameters can be obtained with fgpb --help or fgpb -h.
 ```
 Usage:
 Two running modes are supported:
@@ -105,10 +117,6 @@ OPTIONAL ARGUMENTS
     -h, --help                          Print usage page. 
 
 ```
-
-A listing of all parameters can be obtained with fgpb --help or fgpb -h.
-
-
 
 ## Quick start
 ### Graph-based pangenome mode

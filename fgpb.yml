@@ -1,0 +1,9 @@
+name: fGPB
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - odgi>=0.9
+  - samtools>=1.16
+  - bcftools>=1.16
