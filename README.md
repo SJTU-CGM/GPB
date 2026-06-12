@@ -60,6 +60,22 @@ conda activate fGPB
 fgpb --help
 ```
 
+### Docker
+```
+# Download the fGPB from Github
+git clone https://github.com/SJTU-CGM/fGPB.git
+cd fGPB
+
+# Build the Docker image from the Dockerfile in the current directory
+docker build -f Dockerfile -t fgpb:latest .
+
+# Run fGPB with your data mounted
+docker run --rm -v $(pwd):/data fgpb:latest --help
+
+# Or enter the container interactively (run 'fgpb --help' inside)
+docker run --rm -it -v $(pwd):/data --entrypoint /bin/bash fgpb:latest
+```
+
 ## Usage 
 A listing of all parameters can be obtained with fgpb --help or fgpb -h.
 ```
