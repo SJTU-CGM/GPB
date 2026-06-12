@@ -76,6 +76,15 @@ docker run --rm -v $(pwd):/data fgpb:latest --help
 docker run --rm -it -v $(pwd):/data --entrypoint /bin/bash fgpb:latest
 ```
 
+### Singularity
+```
+# Download the pre-built Singularity image
+wget https://cgm.sjtu.edu.cn/fGPB/src/fgpb_v1.0.sif
+
+# Run fGPB directly from the Singularity image
+singularity exec fgpb_v1.0.sif fgpb --help
+```
+
 ## Usage 
 A listing of all parameters can be obtained with fgpb --help or fgpb -h.
 ```
