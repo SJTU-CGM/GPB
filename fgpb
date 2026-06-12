@@ -104,7 +104,7 @@ GetOptions(
 
 ) or die "\n";
 
-die $usage if $help;
+print $usage and exit 0 if $help;
 
 my $has_vcf_mode = ($vcf || $reffa);
 my $has_graph_mode = ($raw_graph || $refname);

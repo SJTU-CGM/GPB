@@ -19,10 +19,10 @@ fGPB is a visualization tool that employs a novel flow-based layout to clearly r
   Provides zooming, panning, and data inspection capabilities for interactive exploration.
 
 ## Requirements
-### Basic (Both graph mode and VCF mode):
+### Basic (Both graph mode and Variant mode):
 * <b>Perl</b>
 * <b>ODGI</b> (v0.9 or later, https://github.com/pangenome/odgi)<br>
-### VCF mode:
+### Variant mode:
 * <b>VG</b> (v1.60 or later, https://github.com/vgteam/vg) (bundled in `ext/bin/`)<br>
 * <b>Samtools</b> (v1.16 or later, https://github.com/samtools/samtools)<br>
 * <b>Bcftools</b> (v1.16 or later, https://github.com/samtools/bcftools)<br>
@@ -48,7 +48,7 @@ export PERL5LIB="/path/to/fGPB/lib${PERL5LIB:+:$PERL5LIB}"
 fgpb
 ```
 
-If you could see the following content, congratulations! The XXX is successfully installed. If not, see if all the requirements are satisfied, or you may contact the authors for help.
+If you could see the following content, congratulations! The fGPB is successfully installed. If not, see if all the requirements are satisfied, or you may contact the authors for help.
 
 ```
 Usage:
