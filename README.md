@@ -47,6 +47,7 @@ fgpb --help
 ```
 # Download the fGPB from Github
 git clone https://github.com/SJTU-CGM/fGPB.git
+cd fGPB
 
 # Create conda
 conda env create -f fgpb.yml
